@@ -8,27 +8,6 @@ from skimage.feature import match_template
 from skimage.measure import structural_similarity
 from skimage import transform as tf
 
-def tiff(file_name, dtype='uint16'):
-    """
-    Read TIFF files.
-    Parameters
-    ----------
-    file_name : str
-        Name of the input TIFF file.
-    dtype : str, optional   
-        Corresponding numpy data type of the TIFF file.
-    Returns
-    -------
-    out : ndarray
-    Output 2-D matrix as numpy array.
-    """
-    im = Image.open(file_name)
-    out = np.fromstring(im.tostring(), dtype).reshape(tuple(list(im.size[::-1])))
-    #im.close()
-
-    return out
-
-
 def read_hdf4(file_name, array_name):
     """
     Read 2-D tomographic data from hdf4 file.
@@ -77,9 +56,9 @@ def main():
 #    io.imshow(edges)
 #    io.show()
 
-    image_file_name_0 = '/local/decarlo/projects/alignment_data/0_180/hdf4/tilt_020_020_0001.hdf'
-    image_file_name_180 = '/local/decarlo/projects/alignment_data/0_180/hdf4/tilt_020_020_0002.hdf'
-    image_file_name_white = '/local/decarlo/projects/alignment_data/0_180/hdf4/tilt_020_020_0003.hdf'
+    image_file_name_0 = '/local/decarlo/projects/data/microCT/0_180/hdf4/tilt_020_020_0001.hdf'
+    image_file_name_180 = '/local/decarlo/projects/data/microCT/0_180/hdf4/tilt_020_020_0002.hdf'
+    image_file_name_white = '/local/decarlo/projects/data/microCT/0_180/hdf4/tilt_020_020_0003.hdf'
 
     image_0 = read_hdf4(image_file_name_0, 'data')
     image_180 = read_hdf4(image_file_name_180, 'data')
