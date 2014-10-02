@@ -12,23 +12,38 @@ some scripts as needed.
 from suds.wsse import Security, UsernameToken
 from suds.client import Client
 from suds.transport.https import HttpAuthenticated
+import logging
 import sys
 import datetime
 import traceback
 import urllib2
 import httplib
 from xml.sax import SAXParseException
-#import ipdb
+import ipdb
 from collections import defaultdict
+import ConfigParser
+cf = ConfigParser.ConfigParser()
 
 debug = False
 """ You must use the APS web password. You can check it by logging into
 the proposal system. Be careful because this system also accepts LDAP
-account info."""
-username = 'BADGE NUMBER'
-password = 'APS WEB PASSWORD'
-username = 'decarlo'
-password = '!1Dolore'
+account info.
+
+The credentials are stored in a '.ini' file and read by python.
+ - Create a file called 'credentials.ini',
+ - Put the following text in it:
+ [credentials]
+ username = YOUR BADGE NUMBER
+ password = YOUR APS WEB PASSWORD
+
+
+
+ that's it.
+
+"""
+cf.read('credentials.ini')
+username = cf.get('credentials', 'username')
+password = cf.get('credentials', 'password')
 # Uncomment this for INTERNAL network
 base = 'https://schedule.aps.anl.gov:8443/beamschedds/springws/'
 # Uncomment this for EXTERNAL network
@@ -128,6 +143,7 @@ def findBeamtimeRequestsByBeamline(beamlineName, runName):
 
 def setup_connection():
     result = urllib2.install_opener(urllib2.build_opener(HTTPSHandlerV3()))
+    logging.raiseExceptions = 0
 
     beamlineScheduleServiceURL = base + \
          'beamlineScheduleService/beamlineScheduleWebService.wsdl'
@@ -154,22 +170,15 @@ def setup_connection():
 
     return runScheduleServiceClient, beamlineScheduleServiceClient
 
-def get_users(beamline='2-ID-E', date=None):
+def get_users(beamline='2-BM-A,B', date=None):
     runScheduleServiceClient, beamlineScheduleServiceClient = setup_connection()
     if not date:
         date = datetime.datetime.now()
     run_name = findRunName(date, date)
     schedule = findBeamlineSchedule(beamline, run_name)
 
-    print run_name
-    print schedule
-
     events = schedule.activities.activity
     users = defaultdict(dict)
-    
-    print events
-    print users
-
     for event in events:
         try:
             if event.activityType.activityTypeName in ['GUP', 'PUP', 'rapid-access']:
@@ -178,8 +187,7 @@ def get_users(beamline='2-ID-E', date=None):
                             for key in experimenter.__keylist__:
                                 users[experimenter.lastName][key] = getattr(experimenter, key)
         except:
-            print "ipdb except"
-            #ipdb.set_trace()
+            ipdb.set_trace()
             raise
 
     return users
@@ -187,11 +195,24 @@ def get_users(beamline='2-ID-E', date=None):
 
 if __name__ == '__main__':
 
-    now = datetime.datetime.now()
     runScheduleServiceClient, beamlineScheduleServiceClient = setup_connection()
-    print "Current Run Name:", findRunName(now, now)
-    
-    experiment_date = datetime.datetime(2014, 10, 16, 8)
-    print "Experiment date:", experiment_date
-    print "User:", get_users('2-ID-B', experiment_date)
+
+#    now = datetime.datetime.now()
+    now = datetime.datetime(2014, 11, 12, 10)
+
+    beamline = '2-BM-A,B'
+    run_name = findRunName(now, now)
+    schedule = findBeamlineSchedule(beamline, run_name)
+    beamline_request = findBeamtimeRequestsByBeamline(beamline, run_name)
+
+    print "Run Name: ", run_name
+#    print "Schedule: ", schedule
+    print "Beamline Request: ", beamline_request
+
+#    print(get_users('2-BM-A,B', datetime.datetime(2014, 11, 12, 10)))
+#    print(get_users('2-BM-A,B', datetime.datetime(2014, 11, 14, 10)))
+#    print(get_users('2-BM-A,B', datetime.datetime(2014, 11, 24, 10)))
+
+# 32-ID-B,C not published yet
+#    print(get_users('32-ID-B,C', datetime.datetime(2014, 10, 15, 10)))
 
