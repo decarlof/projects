@@ -25,6 +25,7 @@ import ConfigParser
 cf = ConfigParser.ConfigParser()
 
 debug = False
+
 """ You must use the APS web password. You can check it by logging into
 the proposal system. Be careful because this system also accepts LDAP
 account info.
@@ -35,8 +36,6 @@ The credentials are stored in a '.ini' file and read by python.
  [credentials]
  username = YOUR BADGE NUMBER
  password = YOUR APS WEB PASSWORD
-
-
 
  that's it.
 
@@ -197,22 +196,23 @@ if __name__ == '__main__':
 
     runScheduleServiceClient, beamlineScheduleServiceClient = setup_connection()
 
-#    now = datetime.datetime.now()
+    now = datetime.datetime.now()
+    now_date = datetime.date.today()
+
+    # test 
     now = datetime.datetime(2014, 11, 12, 10)
+    now_date = now.date()
 
     beamline = '2-BM-A,B'
     run_name = findRunName(now, now)
     schedule = findBeamlineSchedule(beamline, run_name)
     beamline_request = findBeamtimeRequestsByBeamline(beamline, run_name)
+    users = get_users(beamline, now)
 
-    print "Run Name: ", run_name
-#    print "Schedule: ", schedule
-    print "Beamline Request: ", beamline_request
+    print "Run Name: ", run_name 
+    print "Date: ", now_date
 
-#    print(get_users('2-BM-A,B', datetime.datetime(2014, 11, 12, 10)))
-#    print(get_users('2-BM-A,B', datetime.datetime(2014, 11, 14, 10)))
-#    print(get_users('2-BM-A,B', datetime.datetime(2014, 11, 24, 10)))
+    for tag in users:
+        print users[tag]['badge'], users[tag]['firstName'], users[tag]['lastName'], users[tag]['institution']
 
-# 32-ID-B,C not published yet
-#    print(get_users('32-ID-B,C', datetime.datetime(2014, 10, 15, 10)))
 

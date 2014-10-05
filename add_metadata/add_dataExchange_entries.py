@@ -16,15 +16,15 @@ import os
 
 def main():
     #****************************************************************************
-    hdf5_file_name = '/local/dataraid/databank/dataExchange/tmp/ALS_test.h5'
+    hdf5_file_name = '/local/dataraid/databank/dataExchange/tmp/test_01.h5'
     if (hdf5_file_name != None):
         if os.path.isfile(hdf5_file_name):
             print "Data Exchange file: [%s] already exists", hdf5_file_name
-            # Write the Data Exchange HDF5 file.
             # Open DataExchange file
             f = DataExchangeFile(hdf5_file_name, mode='a') 
 
         else:
+            print "Creating Data Exchange File [%s]", hdf5_file_name
             # Create new folder.
             dirPath = os.path.dirname(hdf5_file_name)
             if not os.path.exists(dirPath):
@@ -36,11 +36,8 @@ def main():
             # Split the string with the delimeter '.'
             end = lFn.split('.')
 
-            # Write the Data Exchange HDF5 file.
             # Open DataExchange file
             f = DataExchangeFile(hdf5_file_name, mode='w') 
-
-            print "Creating Data Exchange File [%s]", hdf5_file_name
 
         # Create HDF5 subgroup
         # /measurement/instrument

@@ -85,20 +85,19 @@ ccd_camera_z_set = PV('32idcTXM:mxv:c0:m6.SET')
 # for test purposes I am using the pin_hole_x PV
 ccd_focus = PV('32idcTXM:xps:c1:m3.VAL')
 
-if 1:
-    ccd_trigger = PV('TXMNeo1:cam1:Acquire')
-    ccd_dwell_time = PV('TXMNeo1:cam1:AcquireTime')
-    ccd_acquire_mode = PV('TXMNeo1:cam1:ImageMode')
-    ccd_image = PV('TXMNeo1:image1:ArrayData')
+ccd_trigger = PV('TXMNeo1:cam1:Acquire')
+ccd_dwell_time = PV('TXMNeo1:cam1:AcquireTime')
+ccd_acquire_mode = PV('TXMNeo1:cam1:ImageMode')
+ccd_image = PV('TXMNeo1:image1:ArrayData')
     #ccd_image_rows = PV('TXMNeo1:cam1:SizeY')
     #ccd_image_columns = PV('TXMNeo1:cam1:SizeX')
-    ccd_image_rows = PV('TXMNeo1:cam1:ArraySizeY_RBV')
-    ccd_image_columns = PV('TXMNeo1:cam1:ArraySizeX_RBV')
-    ccd_binning = PV('TXMNeo1:cam1:A3Binning') # states from 0 to 4
-    ccd_EnableCallbacks = PV('XMNeo1:cam1:EnableCallbacks') # (for background corrections) states: 0 or 1 
-    ccd_EnableFlatField = PV('XMNeo1:cam1:EnableFlatField') # states: 0 or 1
-    ccd_SaveFlatField = PV('XMNeo1:cam1:SaveFlatField')
-    ccd_Image_number = PV('TXMNeo1:cam1:NumImages')
+ccd_image_rows = PV('TXMNeo1:cam1:ArraySizeY_RBV')
+ccd_image_columns = PV('TXMNeo1:cam1:ArraySizeX_RBV')
+ccd_binning = PV('TXMNeo1:cam1:A3Binning') # states from 0 to 4
+ccd_EnableCallbacks = PV('XMNeo1:cam1:EnableCallbacks') # (for background corrections) states: 0 or 1 
+ccd_EnableFlatField = PV('XMNeo1:cam1:EnableFlatField') # states: 0 or 1
+ccd_SaveFlatField = PV('XMNeo1:cam1:SaveFlatField')
+ccd_Image_number = PV('TXMNeo1:cam1:NumImages')
 
 if 0:
     # CCD Manta
