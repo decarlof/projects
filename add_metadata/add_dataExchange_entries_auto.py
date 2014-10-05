@@ -16,7 +16,7 @@ import os
 
 def main():
     #****************************************************************************
-    hdf5_file_name = '/local/dataraid/databank/dataExchange.h5'
+    hdf5_file_name = '/local/dataraid/databank/dataExchange_01.h5'
     if (hdf5_file_name != None):
         if os.path.isfile(hdf5_file_name):
             print "Data Exchange file: [%s] already exists", hdf5_file_name
