@@ -11,8 +11,10 @@
 
 """ 
 
-from data_exchange import DataExchangeFile, DataExchangeEntry
 import os
+from data_exchange import DataExchangeFile, DataExchangeEntry
+import process_variables
+import schedule
 
 def main():
     #****************************************************************************
