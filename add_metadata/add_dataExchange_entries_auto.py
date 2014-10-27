@@ -12,12 +12,29 @@
 """ 
 
 import os
+
+import pytz
+from datetime import datetime
+
 from data_exchange import DataExchangeFile, DataExchangeEntry
-import process_variables
+import process_variables as pv
 import schedule
 
 def main():
     #****************************************************************************
+
+    now = datetime.now(pytz.timezone('US/Central'))
+    datetime_format = '%Y-%m-%dT%H:%M:%S%z'
+
+    current  = pv.current.get()
+    print "Current: ", current
+    print "Time of Day: ", pv.time_of_day.get()
+    print "Undulator Energy: ", pv.undulator_energy.get()
+    print "Undulator Gap:", pv.undulator_gap.get()
+    print "Energy DCM: ", pv.energy_dcm.get()
+    print "Mirror X", pv.mirror_x.get()
+    print "Mirror Y", pv.mirror_y.get()
+
     hdf5_file_name = '/local/dataraid/databank/dataExchange_01.h5'
     if (hdf5_file_name != None):
         if os.path.isfile(hdf5_file_name):
@@ -46,9 +63,9 @@ def main():
         f.add_entry( DataExchangeEntry.instrument(name={'value': 'APS 2-BM'}) )
 
         f.add_entry( DataExchangeEntry.source(name={'value': 'Advanced Photon Source'},
-                                            date_time={'value': "2012-07-31T21:15:23+0600"},
+                                            date_time={'value': now.strftime(datetime_format)},
                                             beamline={'value': "2-BM"},
-                                            current={'value': 101.199, 'units': 'mA', 'dataset_opts': {'dtype': 'd'}},
+                                            current={'value': current, 'units': 'mA', 'dataset_opts': {'dtype': 'd'}},
                                             energy={'value': 7.0, 'units':'GeV', 'dataset_opts': {'dtype': 'd'}},
                                             mode={'value':'TOPUP'}
                                             )

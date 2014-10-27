@@ -200,7 +200,7 @@ if __name__ == '__main__':
     now_date = datetime.date.today()
 
     # test 
-    now = datetime.datetime(2014, 11, 12, 10)
+    now = datetime.datetime(2014, 12, 12, 10)
     now_date = now.date()
 
     beamline = '2-BM-A,B'
@@ -209,8 +209,8 @@ if __name__ == '__main__':
     beamline_request = findBeamtimeRequestsByBeamline(beamline, run_name)
     users = get_users(beamline, now)
 
-    print "Run Name: ", run_name 
     print "Date: ", now_date
+    print "Run Name: ", run_name 
 
     for tag in users:
         print users[tag]['badge'], users[tag]['firstName'], users[tag]['lastName'], users[tag]['institution']
