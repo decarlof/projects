@@ -233,18 +233,19 @@ if __name__ == "__main__":
 # Global settings
     hdf5_file_name = '/local/dataraid/databank/dataExchange_01.h5'
 
-#    beamline = '2-BM-A,B'
+    #beamline = '2-BM-A,B'
+    #instrument_name = 'microCT'
     beamline = '32-ID-B,C'
     instrument_name = 'TXM'
+
     sample_name = "sample_name"
 
-    #test:  now = datetime.datetime(year, month, day, hour, min, s)
+    #now = datetime.datetime(year, month, day, hour, min, s)
     now = datetime.datetime(2014, 12, 12, 10, 10, 30).replace(tzinfo=pytz.timezone('US/Central'))
     #now = datetime.datetime.now(pytz.timezone('US/Central'))
 
     datetime_format = '%Y-%m-%dT%H:%M:%S%z'
     print "Time of Day: ", now.strftime(datetime_format)
-
 
 # PV settings
     current  = pv.current.get()
@@ -276,7 +277,6 @@ if __name__ == "__main__":
     print "Mirror Y", mirror_y
     print "CCD camera objective number", ccd_camera_objective_mode
     print "CCD camera objective label", ccd_camera_objective
-
 
 # scheduling system settings
     runScheduleServiceClient, beamlineScheduleServiceClient = setup_connection()
@@ -350,7 +350,6 @@ if __name__ == "__main__":
                                                     )
             )
 
-
         # Create HDF5 subgroup
         # /measurement/experimenter
         #print role, name, affiliation, facility_user_id, email
@@ -383,7 +382,6 @@ if __name__ == "__main__":
         f.add_entry( DataExchangeEntry.experiment( proposal={'value':proposal_id}
                     )
             )
-
 
         if (sample_name != None):
             f.add_entry( DataExchangeEntry.sample(root='/measurement', name={'value':sample_name}, description={'value':'added by AddEntry.py'}), overwrite=True)
