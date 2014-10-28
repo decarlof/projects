@@ -33,8 +33,6 @@ import ipdb
 from collections import defaultdict
 import ConfigParser
 
-cf = ConfigParser.ConfigParser()
-
 debug = False
 
 """ You must use the APS web password. You can check it by logging into
@@ -52,6 +50,7 @@ The credentials are stored in a '.ini' file and read by python.
 
 """
 
+cf = ConfigParser.ConfigParser()
 cf.read('credentials.ini')
 username = cf.get('credentials', 'username')
 password = cf.get('credentials', 'password')
