@@ -8,6 +8,7 @@ from epics import PV
 
 # Beamline Status
 current = PV('S:SRcurrentAI')
+top_up_status = PV('S:TopUpStatus')
 undulator_energy = PV('ID32ds:Energy.VAL')
 undulator_gap = PV('ID32ds:Gap.VAL')
 energy_dcm = PV('32ida:BraggEAO.VAL')

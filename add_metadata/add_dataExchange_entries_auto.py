@@ -32,6 +32,7 @@ from xml.sax import SAXParseException
 import ipdb
 from collections import defaultdict
 import ConfigParser
+
 cf = ConfigParser.ConfigParser()
 
 debug = False
@@ -51,14 +52,13 @@ The credentials are stored in a '.ini' file and read by python.
 
 """
 
-
 cf.read('credentials.ini')
 username = cf.get('credentials', 'username')
 password = cf.get('credentials', 'password')
-# Uncomment this for INTERNAL network
-base = 'https://schedule.aps.anl.gov:8443/beamschedds/springws/'
-# Uncomment this for EXTERNAL network
-#base = 'https://schedule.aps.anl.gov/beamschedds/springws/'
+
+# Uncomment one if using ANL INTERNAL or EXTERNAL network
+base = cf.get('hosts', 'internal')
+#base = cf.get('hosts', 'external')
 
 class HTTPSConnectionV3(httplib.HTTPSConnection):
     def __init__(self, *args, **kwargs):
@@ -182,6 +182,9 @@ def setup_connection():
     return runScheduleServiceClient, beamlineScheduleServiceClient
 
 def get_users(beamline='2-BM-A,B', date=None):
+    """Find all users listed in the proposal for a given beamline and date
+
+    Returns users."""
     runScheduleServiceClient, beamlineScheduleServiceClient = setup_connection()
     if not date:
         date = datetime.datetime.now()
@@ -204,6 +207,9 @@ def get_users(beamline='2-BM-A,B', date=None):
     return users
 
 def get_proposal_id(beamline='2-BM-A,B', date=None):
+    """Find the proposal number (GUP) for a given beamline and date
+
+    Returns users."""
     runScheduleServiceClient, beamlineScheduleServiceClient = setup_connection()
     if not date:
         date = datetime.datetime.now()
@@ -228,16 +234,26 @@ if __name__ == "__main__":
 # Global settings
     hdf5_file_name = '/local/dataraid/databank/dataExchange_01.h5'
 
-    beamline = '2-BM-A,B'
-    # test 
-    #now = datetime.datetime(2014, 12, 12, 10)
+#    beamline = '2-BM-A,B'
+    beamline = '32-ID-B,C'
+    instrument_name = 'TXM'
+    sample_name = "sample_name"
 
-    now = datetime.datetime.now(pytz.timezone('US/Central'))
+    #test:  now = datetime.datetime(year, month, day, hour, min, s)
+    now = datetime.datetime(2014, 12, 12, 10, 10, 30).replace(tzinfo=pytz.timezone('US/Central'))
+    #now = datetime.datetime.now(pytz.timezone('US/Central'))
+
     datetime_format = '%Y-%m-%dT%H:%M:%S%z'
     print "Time of Day: ", now.strftime(datetime_format)
 
+
 # PV settings
     current  = pv.current.get()
+    top_up_status = pv.top_up_status.get()
+    aps_mode = 'Regular Fill'    
+    if top_up_status == 1:
+        aps_mode = 'Top-up'
+    
     energy = pv.undulator_energy.get()
     energy_dcm = pv.energy_dcm.get()
     undulator_gap = pv.undulator_gap.get()
@@ -253,6 +269,7 @@ if __name__ == "__main__":
         
     
     print "Current: ", current
+    print "Top Up Status: ", top_up_status
     print "Undulator Energy: ", energy
     print "Undulator Gap:", undulator_gap
     print "Energy DCM: ", energy_dcm
@@ -269,7 +286,8 @@ if __name__ == "__main__":
     beamline_request = findBeamtimeRequestsByBeamline(beamline, run_name)
     users = get_users(beamline, now.replace(tzinfo=None))
     proposal_id = get_proposal_id(beamline, now.replace(tzinfo=None))
-
+    
+    # find the Principal Investigator
     for tag in users:
         if users[tag].get('piFlag') != None:
             name = str(users[tag]['firstName'] + ' ' + users[tag]['lastName'])            
@@ -306,14 +324,14 @@ if __name__ == "__main__":
 
         # Create HDF5 subgroup
         # /measurement/instrument
-        f.add_entry( DataExchangeEntry.instrument(name={'value': beamline}) )
+        f.add_entry( DataExchangeEntry.instrument(name={'value': instrument_name}) )
 
         f.add_entry( DataExchangeEntry.source(name={'value': 'Advanced Photon Source'},
                                             date_time={'value': now.strftime(datetime_format)},
                                             beamline={'value': beamline},
                                             current={'value': current, 'units': 'mA', 'dataset_opts': {'dtype': 'd'}},
                                             energy={'value': 7.0, 'units':'GeV', 'dataset_opts': {'dtype': 'd'}},
-                                            mode={'value':'TOP-UP'}
+                                            mode={'value':aps_mode}
                                             )
         )
         # Create HDF5 subgroup
@@ -367,7 +385,6 @@ if __name__ == "__main__":
                     )
             )
 
-        sample_name = "test_of_sample_name"
 
         if (sample_name != None):
             f.add_entry( DataExchangeEntry.sample(root='/measurement', name={'value':sample_name}, description={'value':'added by AddEntry.py'}), overwrite=True)
