@@ -191,6 +191,26 @@ def get_users(beamline='2-BM-A,B', date=None):
 
     return users
 
+def get_proposal_id(beamline='2-BM-A,B', date=None):
+    runScheduleServiceClient, beamlineScheduleServiceClient = setup_connection()
+    if not date:
+        date = datetime.datetime.now()
+    run_name = findRunName(date, date)
+    schedule = findBeamlineSchedule(beamline, run_name)
+
+    events = schedule.activities.activity
+    users = defaultdict(dict)
+    for event in events:
+        try:
+            if event.activityType.activityTypeName in ['GUP', 'PUP', 'rapid-access']:
+                if date >= event.startTime and date <= event.endTime:
+                        proposal_id = event.beamtimeRequest.proposal.id
+        except:
+            ipdb.set_trace()
+            raise
+
+    return proposal_id
+
 
 if __name__ == '__main__':
 
@@ -208,11 +228,23 @@ if __name__ == '__main__':
     schedule = findBeamlineSchedule(beamline, run_name)
     beamline_request = findBeamtimeRequestsByBeamline(beamline, run_name)
     users = get_users(beamline, now)
+    proposal_id = get_proposal_id(beamline, now)
 
     print "Date: ", now_date
     print "Run Name: ", run_name 
+    print beamline_request
 
     for tag in users:
-        print users[tag]['badge'], users[tag]['firstName'], users[tag]['lastName'], users[tag]['institution']
+        print tag
+        if users[tag].get('piFlag') != None:
+            name = users[tag]['firstName'] + ' ' + users[tag]['lastName']            
+            role = "Project PI"
+            affiliation = users[tag]['institution']
+            facility_user_id = users[tag]['badge']
+            email = users[tag]['email']
+            print users[tag]['badge'], users[tag]['firstName'], users[tag]['lastName'], users[tag]['email'], users[tag]['institution'], users[tag]['piFlag']
+            print name, role, affiliation, facility_user_id, email
+        else:            
+            print users[tag]['badge'], users[tag]['firstName'], users[tag]['lastName'], users[tag]['institution']
 
-
+    print "GUP: ", proposal_id
