@@ -194,7 +194,7 @@ def get_users(beamline='2-BM-A,B', date=None):
     users = defaultdict(dict)
     for event in events:
         try:
-            if event.activityType.activityTypeName in ['GUP', 'PUP', 'rapid-access']:
+            if event.activityType.activityTypeName in ['GUP', 'PUP', 'rapid-access', 'sector staff']:
                 if date >= event.startTime and date <= event.endTime:
                         for experimenter in event.beamtimeRequest.proposal.experimenters.experimenter:
                             for key in experimenter.__keylist__:
@@ -219,7 +219,7 @@ def get_proposal_id(beamline='2-BM-A,B', date=None):
     users = defaultdict(dict)
     for event in events:
         try:
-            if event.activityType.activityTypeName in ['GUP', 'PUP', 'rapid-access']:
+            if event.activityType.activityTypeName in ['GUP', 'PUP', 'rapid-access', 'sector staff']:
                 if date >= event.startTime and date <= event.endTime:
                         proposal_id = event.beamtimeRequest.proposal.id
         except:
@@ -228,10 +228,33 @@ def get_proposal_id(beamline='2-BM-A,B', date=None):
 
     return proposal_id
 
+def get_proposal_title(beamline='2-BM-A,B', date=None):
+    """Find the proposal title for a given beamline and date
+
+    Returns users."""
+    runScheduleServiceClient, beamlineScheduleServiceClient = setup_connection()
+    if not date:
+        date = datetime.datetime.now()
+    run_name = findRunName(date, date)
+    schedule = findBeamlineSchedule(beamline, run_name)
+
+    events = schedule.activities.activity
+    users = defaultdict(dict)
+    for event in events:
+        try:
+            if event.activityType.activityTypeName in ['GUP', 'PUP', 'rapid-access', 'sector staff']:
+                if date >= event.startTime and date <= event.endTime:
+                        proposal_title = event.beamtimeRequest.proposal.proposalTitle
+        except:
+            ipdb.set_trace()
+            raise
+
+    return proposal_title
+
 if __name__ == "__main__":
 
 # Global settings
-    hdf5_file_name = '/local/dataraid/databank/dataExchange_01.h5'
+    hdf5_file_name = '/local/dataraid/databank/tmp/test/ALS.h5'
 
     #beamline = '2-BM-A,B'
     #instrument_name = 'microCT'
@@ -241,7 +264,15 @@ if __name__ == "__main__":
     sample_name = "sample_name"
 
     #now = datetime.datetime(year, month, day, hour, min, s)
-    now = datetime.datetime(2014, 12, 12, 10, 10, 30).replace(tzinfo=pytz.timezone('US/Central'))
+    #now = datetime.datetime(2014, 10, 13, 10, 10, 30).replace(tzinfo=pytz.timezone('US/Central'))
+    #now = datetime.datetime(2014, 10, 19, 10, 10, 30).replace(tzinfo=pytz.timezone('US/Central'))
+    #now = datetime.datetime(2014, 10, 27, 10, 10, 30).replace(tzinfo=pytz.timezone('US/Central'))
+    now = datetime.datetime(2014, 11, 03, 10, 10, 30).replace(tzinfo=pytz.timezone('US/Central'))
+    #now = datetime.datetime(2014, 11, 10, 10, 10, 30).replace(tzinfo=pytz.timezone('US/Central'))
+    #now = datetime.datetime(2014, 11, 17, 10, 10, 30).replace(tzinfo=pytz.timezone('US/Central'))
+    #now = datetime.datetime(2014, 11, 24, 10, 10, 30).replace(tzinfo=pytz.timezone('US/Central'))
+    #now = datetime.datetime(2014, 12, 01, 10, 10, 30).replace(tzinfo=pytz.timezone('US/Central'))
+    #now = datetime.datetime(2014, 12, 8, 10, 10, 30).replace(tzinfo=pytz.timezone('US/Central'))
     #now = datetime.datetime.now(pytz.timezone('US/Central'))
 
     datetime_format = '%Y-%m-%dT%H:%M:%S%z'
@@ -261,11 +292,23 @@ if __name__ == "__main__":
     mirror_y = pv.mirror_y.get()
     ccd_camera_objective_mode = pv.ccd_camera_objective_mode.get()
     if ccd_camera_objective_mode == 0:
-        ccd_camera_objective = pv.ccd_camera_objective_label_0.get()
+        ccd_camera_objective = pv.ccd_camera_objective_label_0.get() 
+        ccd_camera_objective_manufacturer = 'Zeiss' 
+        ccd_camera_objective_model = 'Epiplan-Neofluar HD (422310-9900-000)'
+        ccd_camera_objective_magnification = '1.25'
+        ccd_camera_objective_numerical_aperture = '0.03'
     if ccd_camera_objective_mode == 1:
         ccd_camera_objective = pv.ccd_camera_objective_label_1.get()
+        ccd_camera_objective_manufacturer = 'Zeiss' 
+        ccd_camera_objective_model = 'Fluar (420130-9900-000)'
+        ccd_camera_objective_magnification = '5'
+        ccd_camera_objective_numerical_aperture = '0.25'
     if ccd_camera_objective_mode == 2:
         ccd_camera_objective = pv.ccd_camera_objective_label_2.get()
+        ccd_camera_objective_manufacturer = 'Zeiss' 
+        ccd_camera_objective_model = 'EC Epiplan-Neofluar HD (000000-1156-524)'
+        ccd_camera_objective_magnification = '20'
+        ccd_camera_objective_numerical_aperture = '0.5'
         
     
     print "Current: ", current
@@ -285,7 +328,11 @@ if __name__ == "__main__":
     beamline_request = findBeamtimeRequestsByBeamline(beamline, run_name)
     users = get_users(beamline, now.replace(tzinfo=None))
     proposal_id = get_proposal_id(beamline, now.replace(tzinfo=None))
+    proposal_title = str(get_proposal_title(beamline, now.replace(tzinfo=None)))
     
+    print "Proposal Title: ", proposal_title
+    #print beamline_request
+
     # find the Principal Investigator
     for tag in users:
         if users[tag].get('piFlag') != None:
@@ -323,9 +370,9 @@ if __name__ == "__main__":
 
         # Create HDF5 subgroup
         # /measurement/instrument
-        f.add_entry( DataExchangeEntry.instrument(name={'value': instrument_name}) )
+        f.add_entry(DataExchangeEntry.instrument(name={'value': instrument_name}) )
 
-        f.add_entry( DataExchangeEntry.source(name={'value': 'Advanced Photon Source'},
+        f.add_entry(DataExchangeEntry.source(name={'value': 'Advanced Photon Source'},
                                             date_time={'value': now.strftime(datetime_format)},
                                             beamline={'value': beamline},
                                             current={'value': current, 'units': 'mA', 'dataset_opts': {'dtype': 'd'}},
@@ -335,7 +382,7 @@ if __name__ == "__main__":
         )
         # Create HDF5 subgroup
         # /measurement/instrument/attenuator
-        f.add_entry( DataExchangeEntry.attenuator(thickness={'value': 1e-3, 'units': 'm', 'dataset_opts': {'dtype': 'd'}},
+        f.add_entry(DataExchangeEntry.attenuator(thickness={'value': 1e-3, 'units': 'm', 'dataset_opts': {'dtype': 'd'}},
                                                 type={'value': 'Al'}
                                                 )
             )
@@ -343,7 +390,7 @@ if __name__ == "__main__":
         # Create HDF5 subgroup
         # Create HDF5 subgroup
         # /measurement/instrument/monochromator
-        f.add_entry( DataExchangeEntry.monochromator(type={'value': 'double crystal monochromator'},
+        f.add_entry(DataExchangeEntry.monochromator(type={'value': 'double crystal monochromator'},
                                                     energy={'value': energy_dcm, 'units': 'keV', 'dataset_opts': {'dtype': 'd'}},
                                                     energy_error={'value': 1e-5, 'units': 'keV', 'dataset_opts': {'dtype': 'd'}},
                                                     mono_stripe={'value': 'Si (1,1,1)'},
@@ -354,7 +401,7 @@ if __name__ == "__main__":
         # /measurement/experimenter
         #print role, name, affiliation, facility_user_id, email
 
-        f.add_entry( DataExchangeEntry.experimenter(name={'value':name},
+        f.add_entry(DataExchangeEntry.experimenter(name={'value':name},
                                                     role={'value':role},
                                                     affiliation={'value':affiliation},
                                                     facility_user_id={'value':facility_user_id},
@@ -362,10 +409,11 @@ if __name__ == "__main__":
                         )
             )
 
-        f.add_entry(DataExchangeEntry.objective(manufacturer={'value':'Zeiss'},
-                                                model={'value':'Plan-NEOFLUAR 1004-072'},
-                                                magnification={'value':ccd_camera_objective},
-                                            )
+        f.add_entry(DataExchangeEntry.objective(manufacturer={'value':ccd_camera_objective_manufacturer},
+                                                    model={'value':ccd_camera_objective_model},
+                                                    magnification={'value':ccd_camera_objective_magnification},
+                                                    numerical_aperture={'value':ccd_camera_objective_numerical_aperture}
+                        )
             )
 
         f.add_entry(DataExchangeEntry.scintillator(manufacturer={'value':'Crytur'},
@@ -379,12 +427,16 @@ if __name__ == "__main__":
 
         # Create HDF5 subgroup
         # /measurement/experiment
-        f.add_entry( DataExchangeEntry.experiment( proposal={'value':proposal_id}
+        f.add_entry( DataExchangeEntry.experiment(proposal={'value':proposal_id}
                     )
             )
 
         if (sample_name != None):
-            f.add_entry( DataExchangeEntry.sample(root='/measurement', name={'value':sample_name}, description={'value':'added by AddEntry.py'}), overwrite=True)
+            f.add_entry(DataExchangeEntry.sample(root='/measurement', 
+                                                    name={'value':sample_name}, 
+                                                    description={'value':proposal_title}),
+                                                    overwrite=True
+                                                )
 
     f.close()
 
