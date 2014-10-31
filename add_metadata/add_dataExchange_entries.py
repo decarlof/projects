@@ -255,21 +255,22 @@ if __name__ == "__main__":
 
 # Global settings
     hdf5_file_name = '/local/dataraid/databank/tmp/test/ALS.h5'
+    hdf5_file_name = '/local/prom04/tmp/test_30.h5'
 
-    #beamline = '2-BM-A,B'
-    #instrument_name = 'microCT'
+    beamline = '2-BM-A,B'
+    instrument_name = 'microCT'
     beamline = '32-ID-B,C'
     instrument_name = 'TXM'
 
-    sample_name = "sample_name"
+    sample_name = "sample_30"
 
     #now = datetime.datetime(year, month, day, hour, min, s)
-    #now = datetime.datetime(2014, 10, 13, 10, 10, 30).replace(tzinfo=pytz.timezone('US/Central'))
+    now = datetime.datetime(2014, 10, 18, 10, 10, 30).replace(tzinfo=pytz.timezone('US/Central'))
     #now = datetime.datetime(2014, 10, 19, 10, 10, 30).replace(tzinfo=pytz.timezone('US/Central'))
     #now = datetime.datetime(2014, 10, 27, 10, 10, 30).replace(tzinfo=pytz.timezone('US/Central'))
-    now = datetime.datetime(2014, 11, 03, 10, 10, 30).replace(tzinfo=pytz.timezone('US/Central'))
-    #now = datetime.datetime(2014, 11, 10, 10, 10, 30).replace(tzinfo=pytz.timezone('US/Central'))
-    #now = datetime.datetime(2014, 11, 17, 10, 10, 30).replace(tzinfo=pytz.timezone('US/Central'))
+    #now = datetime.datetime(2014, 11, 03, 10, 10, 30).replace(tzinfo=pytz.timezone('US/Central'))
+    #now = datetime.datetime(2014, 11, 5, 10, 10, 30).replace(tzinfo=pytz.timezone('US/Central'))
+    #now = datetime.datetime(2014, 11, 15, 10, 10, 30).replace(tzinfo=pytz.timezone('US/Central'))
     #now = datetime.datetime(2014, 11, 24, 10, 10, 30).replace(tzinfo=pytz.timezone('US/Central'))
     #now = datetime.datetime(2014, 12, 01, 10, 10, 30).replace(tzinfo=pytz.timezone('US/Central'))
     #now = datetime.datetime(2014, 12, 8, 10, 10, 30).replace(tzinfo=pytz.timezone('US/Central'))
