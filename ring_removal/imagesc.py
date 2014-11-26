@@ -1,4 +1,6 @@
+# -*- coding: utf-8 -*-
 """imagesc.py: Imagesc for text matrices"""
+# to visualize the ring removal by:
 
 __author__     = "Eduardo X Miqueles"
 __copyright__  = "Copyright 2014, CNPEM/LNLS" 
