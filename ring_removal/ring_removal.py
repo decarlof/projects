@@ -11,7 +11,7 @@ __date__       = "14.Jan.2014"
 import numpy
 
 
-def ring_removal(SINO):
+def ring_removal(SINO, nblocks=0, alpha=1.5):
     """
     Remove stripes from sinogram data.
 
@@ -21,6 +21,12 @@ def ring_removal(SINO):
         3-D tomographic data with dimensions:
         [projections, slices, pixels]
          
+    nblock : scalar
+        Number of blocks
+
+    alpha : scalar
+        Damping factor.
+
     Returns
     -------
     output : ndarray
@@ -59,13 +65,18 @@ def ring_removal(SINO):
         >>> print "Images are succesfully saved at " + output_file + '...'
     """
 
-    d1 = ring(SINO,1,1)
-    d2 = ring(SINO,2,1)
-    p = d1*d2
-
-    alpha = 1.5
-
-    d = numpy.sqrt(p + alpha*numpy.abs(p.min()))
+    if (nblocks == 0):
+        d1 = ring(SINO,1,1)
+        d2 = ring(SINO,2,1)
+        p = d1*d2
+        d = numpy.sqrt(p + alpha*numpy.abs(p.min()))
+    else:
+	    #half = int(SINO.shape[0]/2)
+        size = int(SINO.shape[0]/nblocks)
+        d1 = ringb(SINO,1,1,size)
+        d2 = ringb(SINO,2,1,size)
+        p = d1*d2
+        d = numpy.sqrt(p + alpha*numpy.fabs(p.min()))
 
     return d
 
