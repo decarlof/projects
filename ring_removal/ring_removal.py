@@ -66,21 +66,21 @@ def ring_removal(SINO, nblocks=0, alpha=1.5):
     """
 
     if (nblocks == 0):
-        d1 = ring(SINO,1,1)
-        d2 = ring(SINO,2,1)
+        d1 = _ring(SINO,1,1)
+        d2 = _ring(SINO,2,1)
         p = d1*d2
         d = numpy.sqrt(p + alpha*numpy.abs(p.min()))
     else:
 	    #half = int(SINO.shape[0]/2)
         size = int(SINO.shape[0]/nblocks)
-        d1 = ringb(SINO,1,1,size)
-        d2 = ringb(SINO,2,1,size)
+        d1 = _ringb(SINO,1,1,size)
+        d2 = _ringb(SINO,2,1,size)
         p = d1*d2
         d = numpy.sqrt(p + alpha*numpy.fabs(p.min()))
 
     return d
 
-def kernel(m,n):
+def _kernel(m,n):
     v = [
          [numpy.array([1,-1]), numpy.array([-3/2,2,-1/2]), numpy.array([-11/6,3,-3/2,1/3])],
          [numpy.array([-1,2,-1]), numpy.array([2,-5,4,-1])],
@@ -89,7 +89,7 @@ def kernel(m,n):
    
     return v[m-1][n-1]  
 
-def ringMatXvec(h,x):
+def _ringMatXvec(h,x):
     s = numpy.convolve(x,numpy.flipud(h))
 
     u = s[numpy.size(h)-1:numpy.size(x)]
@@ -98,15 +98,15 @@ def ringMatXvec(h,x):
     
     return y
 
-def ringCGM(h,alpha,f):
+def _ringCGM(h,alpha,f):
 
         x0 = numpy.zeros(numpy.size(f))
 
-        r = f - (ringMatXvec(h,x0) + alpha*x0)
+        r = f - (_ringMatXvec(h,x0) + alpha*x0)
 
         w = -r
 
-        z = ringMatXvec(h,w) + alpha*w
+        z = _ringMatXvec(h,w) + alpha*w
 
         a = numpy.dot(r,w)/numpy.dot(w,z) 
 
@@ -120,13 +120,13 @@ def ringCGM(h,alpha,f):
                         break
                 B = numpy.dot(r,z)/numpy.dot(w,z) 
                 w = -r + numpy.dot (B,w) 
-                z = ringMatXvec(h,w) + alpha*w; 
+                z = _ringMatXvec(h,w) + alpha*w; 
                 a = numpy.dot(r,w)/numpy.dot(w,z);
                 x = x + numpy.dot(a,w);
                 
         return x
 
-def ring(data,m,n): 
+def _ring(data,m,n): 
 
         mydata = numpy.transpose(data)
 
@@ -149,13 +149,13 @@ def ring(data,m,n):
 
         pp = mydata.mean(1)
                 
-        h = kernel(m,n)             
+        h = _kernel(m,n)             
 
         #########
 
-        f = -ringMatXvec(h,pp)
+        f = -_ringMatXvec(h,pp)
 
-        q = ringCGM(h,alpha,f);
+        q = _ringCGM(h,alpha,f);
 
         ### update sinogram
 
@@ -167,7 +167,7 @@ def ring(data,m,n):
 
         return numpy.transpose(newsino)
  
-def ringb(data,m,n,step): 
+def _ringb(data,m,n,step): 
 
         mydata = numpy.transpose(data)
         
@@ -182,7 +182,7 @@ def ringb(data,m,n,step):
 
         ### Kernel & regularisation parameter
 
-        h = kernel(m,n)
+        h = _kernel(m,n)
 
         #alpha = 1 / (2*(mydata.sum(0).max() - mydata.sum(0).min()))
 
@@ -202,9 +202,9 @@ def ringb(data,m,n,step):
                 
                 ##
 
-                f = -ringMatXvec(h,pp)
+                f = -_ringMatXvec(h,pp)
 
-                q = ringCGM(h,alpha,f)
+                q = _ringCGM(h,alpha,f)
 
                 ### update sinogram
 
