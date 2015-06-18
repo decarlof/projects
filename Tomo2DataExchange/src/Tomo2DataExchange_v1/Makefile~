@@ -1,0 +1,87 @@
+all: nexus_lib main_src  link install
+
+MPI_ROOT    = /clhome/aps_tools/mpich-1.2.6
+
+SHELL       = /bin/sh
+ARCH        = linux
+CCC         = gcc
+CXX         = g++
+CLINKER     = $(CCC)
+LD	    = $(MPI_ROOT)/bin/mpiCC
+AR          = ar crl 
+RANLIB      = ranlib
+PROF_LIB    = -lmpe -lm
+OPTFLAGS    = -g
+#Specify OPTFLAGS for the debug (-g) or release(-O3) mode.
+
+#Special flags
+HDF_FLAGS = -D__unix__ -DHDF4 -DHDF5
+
+#Root directory for various code modules
+NEXUSLIB_ROOT	=	/clhome/TOMO/PANY/utilities/NexusLibrary
+HDF_ROOT	=	/clhome/TOMO/PANY/utilities/hdf4
+HDF5_ROOT	=	/clhome/TOMO/PANY/utilities/hdf5_serial
+NAPI_ROOT	=	/clhome/TOMO/PANY/utilities/nexus/nexus-4.2.1
+# NAPI_ROOT2	=	/clhome/TOMO/PANY/utilities/nexus
+UTILITY_ROOT	=	/clhome/TOMO/PANY/utilities/NexusLibrary/workspace/utility
+XML_ROOT	=	/clhome/TOMO/PANY/utilities/mxml
+TEEM_ROOT       =       /clhome/TOMO/PANY/utilities/teem/teem-1.10.0-src
+FFTW_ROOT       =       /clhome/TOMO/PANY/utilities/fftw
+
+#Include directories for various code modules
+NEXUSLIB_INC	=	-I$(NEXUSLIB_ROOT)/include
+NAPI_INC	=	-I$(NAPI_ROOT)/include
+HDF_INC		=	-I$(HDF_ROOT)/include
+HDF5_INC	=	-I$(HDF5_ROOT)/include
+UTILITY_INC	=	-I$(UTILITY_ROOT)
+XML_INC		=	-I$(XML_ROOT)/include
+LOG_INC         =       -I$(UTILITY_ROOT)
+TEEM_INC        =       -I$(TEEM_ROOT)/include
+FFTW_INC        =       -I$(FFTW_ROOT)/include
+
+#Library directories of various code modules
+HDF_LIBS	=	-L$(HDF_ROOT)/lib -lmfhdf -ldf -ljpeg -lz
+HDF5_LIBS	=	-L$(HDF5_ROOT)/lib -lhdf5 -lhdf5_hl
+OTHER_LIBS	=	-L/usr/lib64 -lpthread -lm
+NEXUS_LIBS	=	-L$(NEXUSLIB_ROOT)/nexus_lib -lnexuslibrary 
+# NAPI_LIBS       =       -L$(NAPI_ROOT2)/lib -lNeXus -lNeXusCPP
+XML_LIBS	=	-L$(XML_ROOT)/lib -lmxml
+LOG_LIBS        =       -L$(UTILITY_ROOT) -llogclass
+TEEM_LIBS       =       -L$(TEEM_ROOT)/lib -lteem -lbz2 -lpng
+FFTW_LIBS       =       -L$(FFTW_ROOT)/lib -lfftw3
+
+#Additional Object references
+# UTILITY_OBJS	=	$(UTILITY_ROOT)/logfileclass.o \
+			$(UTILITY_ROOT)/linkedlistclass.o \
+			$(UTILITY_ROOT)/errorlogclass.o 
+
+NAPI_OBJS		=	$(NAPI_ROOT)/src/napi.o \
+				$(NAPI_ROOT)/src/napi4.o \
+				$(NAPI_ROOT)/src/napi5.o \
+				$(NAPI_ROOT)/src/nxdataset.o \
+				$(NAPI_ROOT)/src/nxio.o \
+				$(NAPI_ROOT)/src/nxxml.o \
+				$(NAPI_ROOT)/src/nxstack.o \
+				$(NAPI_ROOT)/src/stptok.o \
+				$(NAPI_ROOT)/src/napiu.o
+
+### End User configurable options ###
+
+CFLAGS	  = $(OPTFLAGS) 
+CCFLAGS	  = $(CFLAGS)
+EXECS	  = 
+
+-include nexus_lib/nexus_lib.mk
+-include main/main.mk
+
+nexus_lib: nexuslib_src libnexuslibrary.a main_src
+
+nexuslib_src: $(NEXUSLIB_SRC)
+
+main_src: $(MAIN_SRC)
+
+link: main_link 
+
+install: main_install
+
+clean: nexuslib_clean main_clean

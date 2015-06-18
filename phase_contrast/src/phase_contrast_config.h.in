@@ -1,0 +1,6 @@
+// the configured options ans settings
+#define FIND_SHIFT_VERSION_MAJOR @FIND_SHIFT_VERSION_MAJOR@
+#define FIND_SHIFT_VERSION_MINOR @FIND_SHIFT_VERSION_MINOR@
+
+#cmakedefine USE_FFT_GPU
+

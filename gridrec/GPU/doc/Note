@@ -1,0 +1,44 @@
+This is the MPI version for GPU SART on magellan. 
+It utilizes hdf5 parallel for hdf5 input/output. 
+It may use nrrd for input/output too (performance not optimal though). 
+
+Features:
+
+(1) Use parallel HDF5 by means of MPI IO. Good for supercomputers in TCS. 
+    Be able to run on multiple nodes (gpu0035-gpu0038 - 8 GPUs, pj0200-pj0201 - 4 GPUs)
+
+Yongsheng Pan    4/27/2011
+
+----------------------------------------------------------------------------------------
+
+Utilization of the program on pj0200:
+
+(1) Run the program 
+
+      mpiexec.hydra -n 2 -f hostname   ./SART parallel_params_stu_hdf5.txt raw_stu.hdf5
+      mpiexec.hydra -n 4 -f hostname2  ./SART parallel_params_stu_hdf5.txt raw_stu.hdf5
+      mpiexec.hydra -n 16 -f hostname16  ./SART parallel_params_stu_hdf5.txt raw_stu.hdf5 (42 minutes)
+
+(2) Extract the reconstructed slices for visualization
+    
+      hdf5_extract  raw_stu.hdf5 1 0 4
+
+(3) Copy the extracted slices SliceExtract.nrrd for visualization
+
+---------------------------------------------------------------------------------------------
+
+This program supports GridRec_mpi. 
+
+Yongsheng Pan             8/8/2011
+
+
+---------------------------------------------------------------------------------------------
+
+XML support has been added to tomo_recon. 
+
+Problem: 
+
+  Running error (memory) occurs when USE_GRIDREC_GPU = OFF
+
+
+1/10/2012

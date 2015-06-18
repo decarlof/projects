@@ -1,0 +1,64 @@
+#
+# Examples on the use of segmentation algorithms
+#
+
+cmake_minimum_required(VERSION 2.4)
+
+PROJECT(SART)
+
+INCLUDE(${CMAKE_SOURCE_DIR}/CMake/cuda/FindCuda.cmake)
+
+# SET(CMAKE_CXX_FLAGS "-g")
+
+SET(CMAKE_BUILD_TYPE Debug)
+
+# SET(CMAKE_BUILD_TYPE Release)
+
+# Find ITK.
+FIND_PACKAGE(ITK)
+IF(ITK_FOUND)
+  INCLUDE(${ITK_USE_FILE})
+ELSE(ITK_FOUND)
+  MESSAGE(FATAL_ERROR "Cannot build without ITK.  Please set ITK_DIR.")
+ENDIF(ITK_FOUND)
+
+SET( ITK_LIBS ITKCommon ITKIO libfftw3.a libm.a )
+
+# LINK_LIBRARIES( ${ITK_LIBS} )
+# ADD_EXECUTABLE( SART main.cpp io.cpp)
+
+
+# Add current directory to the nvcc include line.
+CUDA_INCLUDE_DIRECTORIES(
+  ${CMAKE_CURRENT_SOURCE_DIR} ${CUDA_INCLUDE} ${CUDA_CUT_INCLUDE}
+)
+
+INCLUDE_DIRECTORIES(   
+  ${CUDA_INCLUDE} ${CUDA_CUT_INCLUDE}
+)
+
+# Use one executable only.
+CUDA_ADD_EXECUTABLE(SART
+   main.cpp 
+   itkGenerateProjection2DImageFilter.h 
+   proj_cal.cu 
+   backproj_cal.cu 
+   len_weight_cal.cu 
+   tv3d_cal.cu
+)
+
+# SET( GSL_LIB libgsl.a libgslcblas.a )
+
+TARGET_LINK_LIBRARIES(
+  SART 
+  ${CUDA_TARGET_LINK}  
+  ${CUDA_CUT_TARGET_LINK}
+  ${ITK_LIBS}
+)
+
+MESSAGE(STATUS  ${CUDA_TARGET_LINK} ${CUDA_CUT_TARGET_LINK} )
+
+  
+
+
+

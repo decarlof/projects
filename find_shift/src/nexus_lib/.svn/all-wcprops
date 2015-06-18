@@ -1,0 +1,59 @@
+K 25
+svn:wc:ra_dav:version-url
+V 57
+/tieman_util/!svn/ver/32/NexusLibrary/tags/V5.0/nexus_lib
+END
+nexusgroup.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 72
+/tieman_util/!svn/ver/32/NexusLibrary/tags/V5.0/nexus_lib/nexusgroup.cpp
+END
+nexusattribute.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 76
+/tieman_util/!svn/ver/32/NexusLibrary/tags/V5.0/nexus_lib/nexusattribute.cpp
+END
+nexusfield.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 72
+/tieman_util/!svn/ver/32/NexusLibrary/tags/V5.0/nexus_lib/nexusfield.cpp
+END
+nexusexceptionclass.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 81
+/tieman_util/!svn/ver/32/NexusLibrary/tags/V5.0/nexus_lib/nexusexceptionclass.cpp
+END
+nexusbox.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 70
+/tieman_util/!svn/ver/32/NexusLibrary/tags/V5.0/nexus_lib/nexusbox.cpp
+END
+libnexuslibrary.a
+K 25
+svn:wc:ra_dav:version-url
+V 75
+/tieman_util/!svn/ver/32/NexusLibrary/tags/V5.0/nexus_lib/libnexuslibrary.a
+END
+nexusapi.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 70
+/tieman_util/!svn/ver/32/NexusLibrary/tags/V5.0/nexus_lib/nexusapi.cpp
+END
+nexusdata.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 71
+/tieman_util/!svn/ver/32/NexusLibrary/tags/V5.0/nexus_lib/nexusdata.cpp
+END
+nexus_lib.mk
+K 25
+svn:wc:ra_dav:version-url
+V 70
+/tieman_util/!svn/ver/32/NexusLibrary/tags/V5.0/nexus_lib/nexus_lib.mk
+END

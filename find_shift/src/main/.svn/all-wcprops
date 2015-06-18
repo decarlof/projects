@@ -1,0 +1,23 @@
+K 25
+svn:wc:ra_dav:version-url
+V 52
+/tieman_util/!svn/ver/32/NexusLibrary/tags/V5.0/main
+END
+ExampleUsage
+K 25
+svn:wc:ra_dav:version-url
+V 65
+/tieman_util/!svn/ver/32/NexusLibrary/tags/V5.0/main/ExampleUsage
+END
+ExampleUsage.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 69
+/tieman_util/!svn/ver/32/NexusLibrary/tags/V5.0/main/ExampleUsage.cpp
+END
+main.mk
+K 25
+svn:wc:ra_dav:version-url
+V 60
+/tieman_util/!svn/ver/32/NexusLibrary/tags/V5.0/main/main.mk
+END
