@@ -1,0 +1,10 @@
+GPU Configurations:
+
+   CUDA_INSTALL_PREFIX         /opt/cuda/bin
+   CUDA_NVCC                   /opt/cuda/bin/nvcc
+   FOUND_CUDART                /opt/cuda/lib64/libcudart.so
+   FOUND_CUDA_NVCC_INCLUDE     /opt/cuda/include
+   FOUND_CUT                   /clhome/cuda_examples/C/lib/libcutil_x86_64.a
+   FOUND_CUT_INCLUDE           /clhome/cuda_examples/C/common/inc
+
+ITK:  /clhome/aps_tools/ITK-build 
