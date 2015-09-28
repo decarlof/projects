@@ -1,0 +1,1011 @@
+//---------------------------------------------------------------------------
+#include <vcl.h>
+#include <stdio.h>
+#include <io.h>
+#include <stdlib.h>
+#pragma hdrstop
+
+#include "global.h"
+
+#include "Multitomo_unit.h"
+#include "Reconstruction_Unit.h"
+#include "centre_finder_Unit.h"
+#include "xcorr_centre_finder.h"
+#include "BmpConvert_Unit.h"
+#include "shift.h"
+
+#include "grid.h"
+
+//---------------------------------------------------------------------------
+#pragma package(smart_init)
+#pragma resource "*.dfm"
+TForm1 *Form1;
+
+//---------------------------------------------------------------------------
+__fastcall TForm1::TForm1(TComponent* Owner)
+        : TForm(Owner)
+{
+}
+//---------------------------------------------------------------------------
+void __fastcall TForm1::Exit1Click(TObject *Sender)
+{
+  if (measure_data!=NULL)  free(measure_data);
+  Application->Terminate();
+}
+//---------------------------------------------------------------------------
+
+void __fastcall TForm1::Loadmeasure1Click(TObject *Sender)
+{
+  char *exten_last_char;
+
+  if (OpenDialog1->Execute())
+  {
+    exten_last_char=(char *)malloc(sizeof(char));
+    input_file_name=(char *)malloc(sizeof(char)*255);
+    exten_last_char=OpenDialog1->FileName.AnsiLastChar();
+    if ((*exten_last_char=='V') || (exten_last_char=="v"))
+    {
+      input_file_name=OpenDialog1->FileName.c_str();
+      file_type_flag='V';
+
+    }
+    else if ((*exten_last_char=='j') || (*exten_last_char=='J'))
+  {
+      input_file_name=OpenDialog1->FileName.c_str();
+      file_type_flag='J';
+  }
+    else if ((*exten_last_char=='f') || (*exten_last_char=='F'))
+  {
+      input_file_name=OpenDialog1->FileName.c_str();
+      file_type_flag='F';
+  }
+    else if ((*exten_last_char=='N') || (*exten_last_char=='n'))
+  {
+      input_file_name=OpenDialog1->FileName.c_str();
+      file_type_flag='N';
+  }
+//     input_file_name=OpenDialog1->FileName.c_str();
+
+  }
+//  input_file_name=OpenDialog1->FileName.c_str();
+  GroupBox1->Visible=true;
+
+}
+
+//---------------------------------------------------------------------------
+
+void __fastcall TForm1::BitBtn1Click(TObject *Sender)
+{
+  FILE           *fdata;
+  unsigned        data_size;
+  float          *measure_data_float;
+  unsigned char  *measure_data_char;
+  unsigned short   *measure_data_unsign_short;
+  int             i,j,k;
+  int             length_of_file;
+
+  measure.number_of_slices=StrToInt(Edit1->Text);
+  measure.number_of_projections=StrToInt(Edit2->Text);
+  measure.number_of_projection_data=StrToInt(Edit3->Text);
+
+  data_size=measure.number_of_slices*measure.number_of_projections*measure.number_of_projection_data;
+
+  measure_data=(float *)malloc(sizeof(float)*data_size);
+
+
+  int handle;
+  handle=open(input_file_name, fmOpenRead);
+
+  length_of_file=filelength(handle);
+  close(handle);
+
+  fdata=fopen(input_file_name,"rb");
+
+
+  switch (file_type_flag)  {
+  case 'V':
+//      measure_data;
+
+      log_flag=true;
+      measure_data_char=(unsigned char *)malloc(sizeof(unsigned char)*data_size);
+      fread(measure_data_char,sizeof(unsigned char),data_size,fdata);
+      for (i=0;i<measure.number_of_slices;i++)
+        for (j=0;j<measure.number_of_projections ;j++)
+           for (k=0;k<measure.number_of_projection_data ;k++)
+                measure_data[i*measure.number_of_projection_data+
+                           j*measure.number_of_slices*measure.number_of_projection_data+k]=
+                           measure_data_char[i*measure.number_of_projection_data+
+                           j*measure.number_of_slices*measure.number_of_projection_data+k];
+      free(measure_data_char);
+
+      break;
+  case 'J':
+        break;
+
+  case 'F':
+         log_flag=true;
+         measure_data_unsign_short=(unsigned short *)malloc(sizeof(unsigned short)*data_size);
+         fread(measure_data_unsign_short,sizeof(unsigned short),data_size,fdata);
+          for (i=0;i<measure.number_of_slices;i++)
+            for (j=0;j<measure.number_of_projections ;j++)
+               for (k=0;k<measure.number_of_projection_data ;k++)
+                    measure_data[i*measure.number_of_projection_data+
+                           j*measure.number_of_slices*measure.number_of_projection_data+k]=measure_data_unsign_short[i*measure.number_of_projection_data+
+                           j*measure.number_of_slices*measure.number_of_projection_data+k];
+          free(measure_data_unsign_short);
+
+         break;
+
+  case 'N':{
+//         log_flag=false;
+        log_flag=true;
+
+
+
+
+         if ((length_of_file/measure.number_of_projections/measure.number_of_projection_data)==4)
+         {
+           measure_data_float=(float *)malloc(sizeof(float)*data_size);
+           fread(measure_data_float,sizeof(float),data_size,fdata);
+          for (i=0;i<measure.number_of_slices;i++)
+          {
+            for (j=0;j<measure.number_of_projections ;j++)
+            {
+               for (k=0;k<measure.number_of_projection_data ;k++)
+               {
+                measure_data[i*measure.number_of_projection_data+
+                       j*measure.number_of_slices*measure.number_of_projection_data+k]=
+                       1.0e8*(measure_data_float[i*measure.number_of_projection_data+
+                      j*measure.number_of_slices*measure.number_of_projection_data+k])+10000;
+
+
+                }
+             }
+           }
+            free(measure_data_float);
+         }
+         else
+         {
+            measure_data_unsign_short=(unsigned short *)malloc(sizeof(unsigned short)*data_size);
+            fread(measure_data_unsign_short,sizeof(unsigned short),data_size,fdata);
+          for (i=0;i<measure.number_of_slices;i++)
+          {
+            for (j=0;j<measure.number_of_projections ;j++)
+            {
+               for (k=0;k<measure.number_of_projection_data ;k++)
+               {
+                measure_data[i*measure.number_of_projection_data+
+                       j*measure.number_of_slices*measure.number_of_projection_data+k]=
+                       measure_data_unsign_short[i*measure.number_of_projection_data+
+                      j*measure.number_of_slices*measure.number_of_projection_data+k];
+                }
+             }
+           }
+          free(measure_data_unsign_short);
+         }
+
+      };
+  }
+
+
+
+  fclose(fdata);
+  GroupBox1->Visible=false;
+
+}
+//---------------------------------------------------------------------------
+
+void __fastcall TForm1::BitBtn2Click(TObject *Sender)
+{
+  GroupBox1->Visible=false;
+}
+//---------------------------------------------------------------------------
+
+void __fastcall TForm1::Viewprofiles1Click(TObject *Sender)
+{
+  GroupBox3->Visible=true;
+}
+//---------------------------------------------------------------------------
+
+void __fastcall TForm1::BitBtn3Click(TObject *Sender)
+{
+  GroupBox3->Visible=false;
+}
+//---------------------------------------------------------------------------
+
+void __fastcall TForm1::BitBtn4Click(TObject *Sender)
+{
+  int     slice_number;
+  float   *profile;
+  int     i,k;
+  float   min_projection_value=1e30;
+  float   max_projection_value=-1e30;
+  float   scale;
+
+  slice_number=StrToInt(Edit4->Text);
+  profile=(float *)malloc(sizeof(float)*measure.number_of_projection_data);
+
+  for(i=0;i<measure.number_of_projection_data;i++)
+      profile[i]=measure_data[measure.number_of_projection_data*(slice_number-1)+i];
+
+  for(i=0;i<measure.number_of_projection_data;i++)
+  {
+   if  (profile[i]<min_projection_value) min_projection_value=profile[i];
+   if  (profile[i]>max_projection_value) max_projection_value=profile[i];
+  }
+
+   scale=measure.number_of_projection_data/Image1->Width ;
+   if (scale<1.0) scale=1.0;
+   for (i=0;i<measure.number_of_projections;i++)
+   {
+      Image1->Canvas->MoveTo(0,Image1->Height);
+      for (k=0;k<measure.number_of_projection_data;k++)
+      {
+/*
+        Image1->Canvas->LineTo(k,Image1->Height-
+           (int)(Image1->Height*(
+                   measure_data[slice_number*measure.number_of_projection_data+(i*measure.number_of_projection_data*measure.number_of_slices)+
+                                 +(int)(1+k*scale)]-1.0*min_projection_value)/
+                         (max_projection_value-min_projection_value)));
+*/
+        Image1->Canvas->LineTo(k,Image1->Height-
+           (int)(Image1->Height*(
+                   profile[(int)(k*scale)]-1.0*min_projection_value)/(max_projection_value-min_projection_value)));
+
+      };
+    }
+
+  GroupBox3->Visible=false;
+  GroupBox2->Visible=true;
+
+}
+//---------------------------------------------------------------------------
+
+void __fastcall TForm1::BitBtn5Click(TObject *Sender)
+{
+  GroupBox2->Visible=false;
+}
+//---------------------------------------------------------------------------
+
+
+
+void __fastcall TForm1::Offcentercorrection1Click(TObject *Sender)
+{
+
+  int   i,j,k;
+
+
+
+  float *original_data;
+  float *shifted_data;
+
+  original_data=(float *)malloc(sizeof(float)*measure.number_of_projections*measure.number_of_projection_data);
+  shifted_data=(float *)malloc(sizeof(float)*(measure.number_of_projections*measure.number_of_projection_data+1));
+
+  for (i=0;i<measure.number_of_slices;i++)
+  {
+    for (j=0;j<measure.number_of_projections;j++)
+    {
+      for (k=0;k<measure.number_of_projection_data;k++)
+      {
+        original_data[j*measure.number_of_projection_data+k]=
+                     1e3*measure_data[j*measure.number_of_projection_data*measure.number_of_slices+  // c'era un 100*
+                       i*measure.number_of_projection_data+ k];
+
+       }
+    }
+
+//    find_center(original_data,shifted_data ,measure.number_of_projections,measure.number_of_projection_data);
+    xcorr_find_center(original_data,shifted_data ,measure.number_of_projections,measure.number_of_projection_data);
+
+//   find_center2(original_data,shifted_data ,measure.number_of_projections,measure.number_of_projection_data);
+//   find_center3(original_data,shifted_data ,measure.number_of_projections,measure.number_of_projection_data);
+
+//    shifting_execute(original_data,shifted_data ,measure.number_of_projections,measure.number_of_projection_data);
+
+
+    for (j=0;j<measure.number_of_projections;j++)
+    {
+      for (k=0;k<measure.number_of_projection_data;k++)
+      {
+        measure_data[j*measure.number_of_projection_data*measure.number_of_slices+
+                       i*measure.number_of_projection_data+ k]=shifted_data[j*measure.number_of_projection_data+k];
+
+
+       }
+    }
+ };
+ free(original_data);
+ free(shifted_data);
+
+}
+
+
+
+
+void __fastcall TForm1::Backprojection1Click(TObject *Sender)
+{
+ int i,j;
+ char * string_tmp1, *string_tmp2;
+ AnsiString index;
+ if (SaveDialog1->Execute())
+ {
+     string_tmp1=(char *)malloc(sizeof(char)*255);
+     string_tmp2=(char *)malloc(sizeof(char)*255);
+     index=(char *)malloc(sizeof(char)*4);  // fino a 999  (?)
+     Delta=pi/measure.number_of_projections ;
+     string_tmp1=SaveDialog1->FileName.c_str();
+     DimImage=16*(int)(measure.number_of_projection_data/16.0);
+//     DimImage=DimImage*2;
+    // MAKEPALETTE;
+
+     for (i=0;i<measure.number_of_slices;i++)
+     {
+       for (j=0;j<255;j++) string_tmp2[j]=string_tmp1[j];
+       DimImage=DimImage / 2;
+       index=IntToStr(i);
+       StrCat(string_tmp2, index.c_str());
+       Init(i);
+       SinCosGenerate();
+       SheppLogan();
+//       Hamming(0.6);
+       MakeImage(string_tmp2);
+       DimImage=DimImage*2;
+       MAKEBITMAP32(string_tmp2,DimImage,DimImage);
+     };
+     Fine;
+
+//     Nomefileout:=fappo;
+    // updown1.visible:=true;
+    // edit4.visible:=true;
+    // image2.visible:=true;
+    // image2.picture.loadfromfile(nomefileout+'1.bmp');
+  }
+
+}
+//---------------------------------------------------------------------------
+
+
+void __fastcall TForm1::Viewsinogram1Click(TObject *Sender)
+{
+ int                    i,j;
+ float                  sino_max_value,
+                        sino_min_value;
+
+ unsigned short         *sino_lines_data;
+ FILE                   *fdata;
+ char                   *str_tmp,*str_tmp1;
+
+ sino_max_value=-1e30;
+ sino_min_value=1e30;
+ if (measure.number_of_slices>1) GroupBox5->Visible=true;
+ else
+ {
+   for (i=0;i<measure.number_of_projections;i++)
+     for (j=0;j<measure.number_of_projection_data;j++)
+     {
+       if (sino_max_value<measure_data[i*measure.number_of_projection_data+j])
+            sino_max_value=measure_data[i*measure.number_of_projection_data+j];
+       if (sino_min_value>measure_data[i*measure.number_of_projection_data+j])
+            sino_min_value=measure_data[i*measure.number_of_projection_data+j];
+     };
+
+   sino_lines_data=(unsigned short*)malloc(sizeof(unsigned short)*measure.number_of_projections*measure.number_of_projection_data);
+   for (i=0;i<measure.number_of_projections;i++)
+     for (j=0;j<measure.number_of_projection_data;j++)
+         sino_lines_data[i*measure.number_of_projection_data+j]=
+                      (unsigned short)((measure_data[i*measure.number_of_projection_data+j]-sino_min_value)/
+                       (sino_max_value-sino_min_value)*65535);
+
+   str_tmp=(char *)malloc(sizeof(char)*255);
+   str_tmp1=(char *)malloc(sizeof(char)*255);
+   SaveDialog1->Title="File name without extension";
+   if (SaveDialog1->Execute())
+   {
+     str_tmp=SaveDialog1->FileName.c_str();
+     for (i=0;i<255;i++) str_tmp1[i]=str_tmp[i];
+
+     StrCat(str_tmp1,".mat");
+     fdata=fopen(str_tmp1,"wb");
+     fwrite(sino_lines_data,sizeof(unsigned short),measure.number_of_projections*measure.number_of_projection_data,fdata);
+     fclose;
+     MAKEBITMAP32(str_tmp, measure.number_of_projection_data,measure.number_of_projections);
+
+   }
+
+ }
+
+}
+//---------------------------------------------------------------------------
+
+void __fastcall TForm1::BitBtn6Click(TObject *Sender)
+{
+  GroupBox5->Visible=false;
+}
+//---------------------------------------------------------------------------
+
+void __fastcall TForm1::BitBtn7Click(TObject *Sender)
+{
+   int                    i,j;
+   float                  sino_max_value,
+                          sino_min_value;
+
+   unsigned short         *sino_lines_data;
+   FILE                   *fdata;
+   char                   *str_tmp,*str_tmp1;
+
+   int slice_number;
+   slice_number=StrToInt(Edit5->Text);
+
+   sino_max_value=-1e30;
+   sino_min_value=1e30;
+
+   for (i=0;i<measure.number_of_projections;i++)
+     for (j=0;j<measure.number_of_projection_data;j++)
+     {
+       if (sino_max_value<measure_data[slice_number*measure.number_of_projection_data+i*measure.number_of_projection_data*measure.number_of_slices+j])
+            sino_max_value=measure_data[slice_number*measure.number_of_projection_data+i*measure.number_of_projection_data*measure.number_of_slices+j];
+       if (sino_min_value>measure_data[slice_number*measure.number_of_projection_data+i*measure.number_of_projection_data*measure.number_of_slices+j])
+            sino_min_value=measure_data[slice_number*measure.number_of_projection_data+i*measure.number_of_projection_data*measure.number_of_slices+j];
+     };
+
+   sino_lines_data=(unsigned short*)malloc(sizeof(unsigned short)*measure.number_of_projections*measure.number_of_projection_data);
+   for (i=0;i<measure.number_of_projections;i++)
+     for (j=0;j<measure.number_of_projection_data;j++)
+         sino_lines_data[i*measure.number_of_projection_data+j]=
+                      (unsigned short)((measure_data[slice_number*measure.number_of_projection_data+i*measure.number_of_projection_data*measure.number_of_slices+j]-sino_min_value)/
+                       (sino_max_value-sino_min_value)*65535);
+
+   str_tmp=(char *)malloc(sizeof(char)*255);
+   str_tmp1=(char *)malloc(sizeof(char)*255);
+   SaveDialog1->Title="File name without extension";
+   if (SaveDialog1->Execute())
+   {
+     str_tmp=SaveDialog1->FileName.c_str();
+     for (i=0;i<255;i++) str_tmp1[i]=str_tmp[i];
+
+     StrCat(str_tmp1,".mat");
+     fdata=fopen(str_tmp1,"wb");
+     fwrite(sino_lines_data,sizeof(unsigned short),measure.number_of_projections*measure.number_of_projection_data,fdata);
+     fclose;
+     MAKEBITMAP32(str_tmp, measure.number_of_projection_data,measure.number_of_projections);
+
+   }
+
+
+
+  GroupBox5->Visible=false;
+
+}
+//---------------------------------------------------------------------------
+
+void __fastcall TForm1::Normalizesinogram1Click(TObject *Sender)
+{
+  GroupBox6->Visible=true;
+  }
+//---------------------------------------------------------------------------
+
+void __fastcall TForm1::BitBtn8Click(TObject *Sender)
+{
+  FILE                 *fdata;
+  int                   i,j;
+  unsigned short        *sino_lines_data;
+  float                 *low_pass_sino_lines_data;
+  float                 *mean_vect;
+  unsigned short        *mean_sino_line_data;
+  int                   row_number,
+                        column_number;
+  char                  *str_tmp,*str_tmp1;
+  float                  mean_total=0.0;
+  float                 corr_value;
+
+  if (OpenDialog2->Execute())
+  {
+    row_number=StrToInt(Edit6->Text);
+    column_number=StrToInt(Edit7->Text);
+    sino_lines_data=(unsigned short *)malloc(sizeof(unsigned short)*row_number*column_number);
+    mean_vect=(float  *)malloc(sizeof(float)*row_number);
+
+    fdata=fopen(OpenDialog2->FileName.c_str(),"rb");
+    fread(sino_lines_data,sizeof(unsigned short),row_number*column_number,fdata);
+    fclose(fdata);
+
+
+    for (i=0;i<row_number;i++)
+    {
+      for (j=0;j<column_number;j++)
+      {
+        mean_vect[i]+=sino_lines_data[i*column_number+j];
+      }
+      mean_total+=mean_vect[i];
+      mean_vect[i]/=column_number;
+    }
+    mean_total/=(column_number*row_number);
+    for (i=0;i<row_number;i++)
+    {
+      for (j=0;j<column_number;j++)
+      {
+        sino_lines_data[i*column_number+j]=(unsigned short)(0.7*sino_lines_data[i*column_number+j]*mean_total/mean_vect[i]);
+      }
+    };
+
+
+
+    low_pass_sino_lines_data=(float  *)malloc(sizeof(float)*column_number);
+    mean_sino_line_data=(unsigned short *)malloc(sizeof(unsigned short)*column_number);
+
+    for (j=0;j<column_number;j++)
+    {
+     mean_sino_line_data[j]=0.0;
+     for (i=0;i<row_number;i++)
+       mean_sino_line_data[j]=mean_sino_line_data[j]+sino_lines_data[i*column_number+j];
+    }
+     for (j=0;j<column_number;j++) mean_sino_line_data[j]/=row_number;
+
+      for (j=5;j<column_number-5;j++)
+      {
+       low_pass_sino_lines_data[j]=
+               (mean_sino_line_data[j-5]+mean_sino_line_data[j-4]+
+                       mean_sino_line_data[j-3]+mean_sino_line_data[j-2]+
+                       mean_sino_line_data[j-1]+mean_sino_line_data[j]+
+                       mean_sino_line_data[j+1]+mean_sino_line_data[j+2]+
+                       mean_sino_line_data[j+3]+mean_sino_line_data[j+4]+
+                       mean_sino_line_data[j+5])/10.0;
+      }
+     low_pass_sino_lines_data[0]=mean_sino_line_data[0];
+     low_pass_sino_lines_data[1]=mean_sino_line_data[1];
+     low_pass_sino_lines_data[2]=mean_sino_line_data[2];
+     low_pass_sino_lines_data[1]=mean_sino_line_data[3];
+     low_pass_sino_lines_data[2]=mean_sino_line_data[4];
+     low_pass_sino_lines_data[column_number-1]=mean_sino_line_data[column_number-1];
+     low_pass_sino_lines_data[column_number-2]=mean_sino_line_data[column_number-2];
+     low_pass_sino_lines_data[column_number-3]=mean_sino_line_data[column_number-3];
+     low_pass_sino_lines_data[column_number-2]=mean_sino_line_data[column_number-4];
+     low_pass_sino_lines_data[column_number-3]=mean_sino_line_data[column_number-5];
+
+    for (i=0;i<row_number;i++)
+      for (j=0;j<column_number;j++)
+      {
+         corr_value=(1.0*mean_sino_line_data[j]-low_pass_sino_lines_data[j]);
+         if  ((1.0*sino_lines_data[i*column_number+j]-corr_value)>0.0)
+         sino_lines_data[i*column_number+j]-=(unsigned short)(corr_value);
+         else  sino_lines_data[i*column_number+j]=0;
+       }
+
+    SaveDialog2->Title="File name without extension";
+    if (SaveDialog2->Execute())
+    {
+      str_tmp=(char *)malloc(sizeof(char)*255);
+      str_tmp1=(char *)malloc(sizeof(char)*255);
+      str_tmp=SaveDialog2->FileName.c_str();
+      for (i=0;i<255;i++) str_tmp1[i]=str_tmp[i];
+      StrCat(str_tmp1,".mat");
+      fdata=fopen(str_tmp1,"wb");
+      fwrite(sino_lines_data,sizeof(unsigned short),row_number*column_number,fdata);
+      fclose(fdata);
+      MAKEBITMAP32(str_tmp, column_number,row_number);
+    }
+
+
+ }
+  free(mean_sino_line_data);
+  free(low_pass_sino_lines_data);
+  free(sino_lines_data);
+  free(mean_vect);
+  GroupBox6->Visible=false;
+}
+//---------------------------------------------------------------------------
+
+void __fastcall TForm1::BitBtn9Click(TObject *Sender)
+{
+  GroupBox6->Visible=false;
+}
+//---------------------------------------------------------------------------
+
+void __fastcall TForm1::RingArtifactscorrection1Click(TObject *Sender)
+{
+  FILE          *fdata;
+  int            i,j,k,m;
+  float         *low_pass_sino_lines_data;
+  float         *mean_vect;
+  float         *mean_sino_line_data;
+  char          *str_tmp,*str_tmp1;
+  float         *mean_total;
+  float          tmp;
+
+    mean_vect=(float  *)malloc(sizeof(float)*measure.number_of_projections*measure.number_of_slices);
+    mean_total=(float  *)malloc(sizeof(float)*measure.number_of_slices);
+
+    for (k=0;k<measure.number_of_slices*measure.number_of_projections;k++) mean_vect[k]=0.0;
+
+for (m=0;m<10;m++)
+{
+// normalization of each projection: mean values estimation
+    for (k=0;k<measure.number_of_slices;k++)
+    {
+        for (i=0;i<measure.number_of_projections;i++)
+        {
+          for (j=0;j<measure.number_of_projection_data;j++)
+          {
+            mean_vect[k*measure.number_of_projections+i]+=
+              measure_data[i*measure.number_of_slices*measure.number_of_projection_data+
+                      k*measure.number_of_projection_data+j];
+          }
+          mean_vect[k*measure.number_of_projections+i]/=measure.number_of_projection_data;
+          mean_total[k]+=mean_vect[k*measure.number_of_projections+i];
+        }
+        mean_total[k]/=measure.number_of_projections;
+    };
+
+// rinormalization of each projection to the global mean
+
+    for (k=0;k<measure.number_of_slices;k++)
+    {
+      for (i=0;i<measure.number_of_projections;i++)
+      {
+        for (j=0;j<measure.number_of_projection_data;j++)
+        {
+          measure_data[i*measure.number_of_slices*measure.number_of_projection_data+
+             k*measure.number_of_projection_data+j]=
+                measure_data[i*measure.number_of_slices*measure.number_of_projection_data+
+                   k*measure.number_of_projection_data+j]*
+                       mean_total[k]/mean_vect[k*measure.number_of_projections+i];
+        }
+
+      };
+
+    };
+
+
+
+// ring filtering: sum of projection and low-pass filter of the result
+
+    low_pass_sino_lines_data=(float  *)malloc(sizeof(float)*measure.number_of_projection_data*measure.number_of_slices);
+    mean_sino_line_data=(float *)malloc(sizeof(float)*measure.number_of_projection_data*measure.number_of_slices);
+
+
+    for (k=0;k<measure.number_of_slices*measure.number_of_projection_data;k++) mean_sino_line_data[k]=0.0;
+
+    for (k=0;k<measure.number_of_slices;k++)
+    {
+        for (i=0;i<measure.number_of_projections;i++)
+        {
+          for (j=0;j<measure.number_of_projection_data;j++)
+          {
+            mean_sino_line_data[k*measure.number_of_projection_data+j]+=
+               measure_data[i*measure.number_of_slices*measure.number_of_projection_data+
+                      k*measure.number_of_projection_data+j];
+          }
+        }
+    }
+    for (k=0;k<measure.number_of_slices*measure.number_of_projection_data;k++) mean_sino_line_data[k]/=measure.number_of_projections;
+
+
+    for (k=0;k<measure.number_of_slices;k++)
+    {
+
+
+       for (j=1;j<measure.number_of_projection_data-1;j++)
+       {
+             low_pass_sino_lines_data[k*measure.number_of_projection_data+j]=
+                    (
+                      mean_sino_line_data[k*measure.number_of_projection_data+j-1]+
+                      mean_sino_line_data[k*measure.number_of_projection_data+j]+
+                      mean_sino_line_data[k*measure.number_of_projection_data+j+1]
+                      )/3.0;
+
+        }
+       low_pass_sino_lines_data[k*measure.number_of_projection_data]=mean_sino_line_data[k*measure.number_of_projection_data];
+       low_pass_sino_lines_data[(k+1)*measure.number_of_projection_data-1]=mean_sino_line_data[(k+1)*measure.number_of_projection_data-1];
+
+
+    }
+
+// ring corrections
+
+
+//    fdata=fopen("c:\\somma.txt","wt");
+//    for (j=0;j<measure.number_of_projection_data;j++) fprintf(fdata,"%f\n", mean_sino_line_data[j]);
+//    fclose(fdata);
+//    fdata=fopen("c:\\lowpass.txt","wt");
+//    for (j=0;j<measure.number_of_projection_data;j++) fprintf(fdata,"%f\n", low_pass_sino_lines_data[j]);
+//    fclose(fdata);
+
+
+    for (k=0;k<measure.number_of_slices;k++)
+    {
+      for (i=0;i<measure.number_of_projections;i++)
+      {
+        for (j=0;j<measure.number_of_projection_data;j++)
+        {
+          tmp=mean_sino_line_data[k*measure.number_of_projection_data+j]-low_pass_sino_lines_data[k*measure.number_of_projection_data+j];
+          if ((measure_data[i*measure.number_of_slices*measure.number_of_projection_data+
+                   k*measure.number_of_projection_data+j]-tmp)>0.0)
+              measure_data[i*measure.number_of_slices*measure.number_of_projection_data+
+                   k*measure.number_of_projection_data+j]-=tmp;
+          else measure_data[i*measure.number_of_slices*measure.number_of_projection_data+
+                   k*measure.number_of_projection_data+j]=0.0;
+
+        }
+
+      };
+
+    };
+
+
+  free(mean_sino_line_data);
+  free(low_pass_sino_lines_data);
+
+};
+
+
+  free(mean_total);
+  free(mean_vect);
+
+}
+//---------------------------------------------------------------------------
+
+
+
+void __fastcall TForm1::Gridrec1Click(TObject *Sender)
+{
+
+
+    float               **G1, **G2, **S1, **S2;
+    int                 i,j,k,m;
+    float               *sino1,  *sino2;
+    long                imgsiz;
+    float               *recon1, *recon2;
+    grid_struct         *GP;
+    sg_struct           *SGP;
+    char                *filter;
+    float               *vect_angle;
+    float               min_image_value=1e30;
+    float               max_image_value=-1e30;
+    unsigned short      *wtemp;
+    FILE                *FImage;
+    char                *string_tmp1, *string_tmp2;
+    AnsiString        index;
+
+
+
+  if (SaveDialog1->Execute())
+  {
+
+    filter=(char *)malloc(sizeof(char)*255);
+    vect_angle=(float*)malloc(sizeof(float)*measure.number_of_projections);
+    G1 = (float **) malloc((size_t) (measure.number_of_projections * sizeof(float *)));
+    G2 = (float **) malloc((size_t) (measure.number_of_projections * sizeof(float *)));
+
+
+    sino1=(float *)malloc(sizeof(float)*measure.number_of_projections*measure.number_of_projection_data);
+    sino2=(float *)malloc(sizeof(float)*measure.number_of_projections*measure.number_of_projection_data);
+
+    wtemp=(unsigned short *)malloc(sizeof(unsigned short)*measure.number_of_projection_data);
+
+
+    for (i=0;i<measure.number_of_projections;i++) vect_angle[i]=1.0*i*180.0/measure.number_of_projections;
+
+    GP=(grid_struct *)malloc(sizeof(grid_struct));
+
+    SGP=(sg_struct *)malloc(sizeof(sg_struct));
+
+    SGP->n_ang=measure.number_of_projections ;
+
+    SGP->geom=1;
+
+    SGP->n_det=measure.number_of_projection_data ;
+    SGP->center=measure.number_of_projection_data /2;
+    get_pswf(6.0,&GP->pswf);       // era 6.0
+
+
+    SGP->angles=vect_angle;
+    GP->sampl=1.0;
+    GP->MaxPixSiz=1.0;
+    GP->R=1.0;
+
+    GP->X0=0.0;
+    GP->Y0=0.0;
+    filter="shlo";
+    GP->filter=get_filter(filter);
+    GP->ltbl=512;   // era 512
+
+    string_tmp1=(char *)malloc(sizeof(char)*255);
+    string_tmp2=(char *)malloc(sizeof(char)*255);
+    index=(char *)malloc(sizeof(char)*4);  // fino a 999  (?)
+
+
+    string_tmp1=SaveDialog1->FileName.c_str();
+    for (m=0;m<255;m++) string_tmp2[m]=string_tmp1[m];
+
+    recon_init(GP,SGP, &imgsiz);
+
+    for (k=0;k<measure.number_of_slices;k+=2)
+    {
+
+        for (i=0;i<measure.number_of_projections;i++)
+        {
+          for (j=0;j<imgsiz;j++)
+          {
+            sino1[i*imgsiz+j]=
+               measure_data[i*measure.number_of_slices*measure.number_of_projection_data+
+                      k*measure.number_of_projection_data+j];
+
+
+            if (measure.number_of_slices>1)
+                sino2[i*imgsiz+j]=
+                   measure_data[i*measure.number_of_slices*measure.number_of_projection_data+
+                          (k+1)*measure.number_of_projection_data+j];
+            else sino2[i*imgsiz+j]=sino1[i*imgsiz+j];
+
+          }
+        }
+
+
+        G1[0] = sino1;
+        G2[0] = sino2;
+
+        for (i = 1; i < measure.number_of_projections; i++)
+        {
+	     G1[i] = G1[i-1] + imgsiz;
+	     G2[i] = G2[i-1] + imgsiz;
+        }
+
+
+
+        do_recon(G1, G2, &S1, &S2);
+
+        recon1=S1[0];
+        recon2=S2[0];
+
+// inizia immagine 1
+       for (i=0;i<imgsiz;i++)
+      {
+          for (j=0;j<imgsiz;j++)
+          {
+              if (min_image_value>recon1[i*imgsiz+j])
+                      min_image_value=recon1[i*imgsiz+j];
+              if (max_image_value<recon1[i*imgsiz+j])
+                      max_image_value=recon1[i*imgsiz+j];
+          };
+       };
+
+     index=IntToStr(k);
+     for (m=0;m<255;m++) string_tmp2[m]=string_tmp1[m];
+     StrCat(string_tmp2, index.c_str());
+     StrCat(string_tmp2, ".mat");
+
+     FImage=fopen(string_tmp2,"wb");
+
+     for (i=0;i<imgsiz;i++)
+     {
+          for (j=0;j<imgsiz;j++)
+          {
+              if ((recon1[i*imgsiz+j]-min_image_value)>0.0)
+                  wtemp[j]=(unsigned short)((recon1[i*imgsiz+j]-min_image_value)/(max_image_value-min_image_value)*65535.0);
+              else wtemp[j]=0;
+//              if ((recon1[i*imgsiz+j])>0.0)
+//                 wtemp[j]=(unsigned short)((recon1[i*imgsiz+j])/(max_image_value)*65535.0);
+//              else wtemp[j]=0;
+          }
+          wtemp[measure.number_of_projection_data-1]=0;
+         fwrite(wtemp,measure.number_of_projection_data*sizeof(unsigned short),1,FImage);
+    };
+
+    fwrite(wtemp,measure.number_of_projection_data*sizeof(unsigned short),1,FImage);
+
+
+    fclose(FImage);
+    for (m=0;m<255;m++) string_tmp2[m]=string_tmp1[m];
+    StrCat(string_tmp2, index.c_str());
+
+    MAKEBITMAP32(string_tmp2, measure.number_of_projection_data ,measure.number_of_projection_data);
+
+// inizia immagine 2
+
+
+       for (i=0;i<imgsiz;i++)
+      {
+          for (j=0;j<imgsiz;j++)
+          {
+              if (min_image_value>recon2[i*imgsiz+j])
+                      min_image_value=recon2[i*imgsiz+j];
+              if (max_image_value<recon2[i*imgsiz+j])
+                      max_image_value=recon2[i*imgsiz+j];
+          };
+       };
+
+     index=IntToStr(k+1);
+
+     for (m=0;m<255;m++) string_tmp2[m]=string_tmp1[m];
+     StrCat(string_tmp2, index.c_str());
+     StrCat(string_tmp2, ".mat");
+
+     FImage=fopen(string_tmp2,"wb");
+
+     min_image_value=0;
+     for (i=0;i<imgsiz;i++)
+     {
+          for (j=0;j<imgsiz;j++)
+          {
+              if ((recon2[i*imgsiz+j]-min_image_value)>0.0)
+                  wtemp[j]=(unsigned short)((recon2[i*imgsiz+j]-min_image_value)/(max_image_value-min_image_value)*65535.0);
+              else wtemp[j]=0;
+          }
+          wtemp[measure.number_of_projection_data-1]=0;
+         fwrite(wtemp,measure.number_of_projection_data*sizeof(unsigned short),1,FImage);
+    };
+
+    fwrite(wtemp,measure.number_of_projection_data*sizeof(unsigned short),1,FImage);
+    fclose(FImage);
+
+
+    for (m=0;m<255;m++) string_tmp2[m]=string_tmp1[m];
+    StrCat(string_tmp2, index.c_str());
+
+    MAKEBITMAP32(string_tmp2, measure.number_of_projection_data ,measure.number_of_projection_data);
+
+    free(S1);
+    free(S2);
+
+
+
+
+    };
+    free(wtemp);
+    free(G1);
+    free(G2);
+    free(S1);
+    free(S2);
+  }
+
+
+}
+//---------------------------------------------------------------------------
+
+void __fastcall TForm1::Logarithmonly1Click(TObject *Sender)
+{
+  int   i,j,k;
+
+
+
+  float *original_data;
+  float *logarithm_data;
+
+  original_data=(float *)malloc(sizeof(float)*measure.number_of_projections*measure.number_of_projection_data);
+  logarithm_data=(float *)malloc(sizeof(float)*measure.number_of_projections*measure.number_of_projection_data);
+
+  for (i=0;i<measure.number_of_slices;i++)
+  {
+    for (j=0;j<measure.number_of_projections;j++)
+    {
+      for (k=0;k<measure.number_of_projection_data;k++)
+      {
+        original_data[j*measure.number_of_projection_data+k]=
+                     measure_data[j*measure.number_of_projection_data*measure.number_of_slices+
+                       i*measure.number_of_projection_data+ k];
+
+       }
+    }
+
+    log_proj(original_data, logarithm_data, measure.number_of_projections, measure.number_of_projection_data);
+
+    for (j=0;j<measure.number_of_projections;j++)
+    {
+      for (k=0;k<measure.number_of_projection_data;k++)
+      {
+        measure_data[j*measure.number_of_projection_data*measure.number_of_slices+
+                       i*measure.number_of_projection_data+ k]=logarithm_data[j*measure.number_of_projection_data+k];
+
+
+       }
+    }
+ };
+ free(original_data);
+ free(logarithm_data);
+
+}
+
+
+//---------------------------------------------------------------------------
+
