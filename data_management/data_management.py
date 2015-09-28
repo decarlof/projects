@@ -1,12 +1,14 @@
 # -*- coding: utf-8 -*-
 """
-.. module:: add_dataExchange_entries.py
+.. module:: data_management.py
    :platform: Unix
-   :synopsis: add Data Exchange entries to an HDF5 file
+   :synopsis:   Finds users running at specific date, 
+                creates and share top data folder 
+                share top data folder with the users liste in the proposal 
    :INPUT
-      Data Exchange file name 
+      Date of the experiments 
 
-.. moduleauthor:: David Vine <djvine@gmail.com>, Francesco De Carlo <decarlof@gmail.com>
+.. moduleauthor:: Francesco De Carlo <decarlof@gmail.com>
 
 This module is largely John Hammonds work to which I'll be adding
 some scripts as needed.
@@ -15,15 +17,12 @@ some scripts as needed.
 import os
 import pytz
 import datetime
-import process_variables as pv
-from dxfile.dxtomo import File, Entry
-
+from globusonline.transfer.api_client import Transfer, create_client_from_args
 from suds.wsse import Security, UsernameToken
 from suds.client import Client
 from suds.transport.https import HttpAuthenticated
 import logging
 import sys
-import datetime
 import traceback
 import urllib2
 import httplib
@@ -122,7 +121,6 @@ def findRunName(startDate, endDate):
             raise ex
     return runName
 
-
 def findBeamlineSchedule(beamlineName, runName):
     """Find beamline schedule for given beamlineName and runName"""
 
@@ -215,6 +213,7 @@ def get_proposal_id(beamline='2-BM-A,B', date=None):
     schedule = findBeamlineSchedule(beamline, run_name)
 
     events = schedule.activities.activity
+
     users = defaultdict(dict)
     for event in events:
         try:
@@ -250,193 +249,135 @@ def get_proposal_title(beamline='2-BM-A,B', date=None):
 
     return proposal_title
 
+def get_experiment_start(beamline='2-BM-A,B', date=None):
+    """Find the experiment start date for a given beamline and date
+
+    Returns experiment_start."""
+    runScheduleServiceClient, beamlineScheduleServiceClient = setup_connection()
+    if not date:
+        date = datetime.datetime.now()
+    run_name = findRunName(date, date)
+    schedule = findBeamlineSchedule(beamline, run_name)
+
+    events = schedule.activities.activity
+    users = defaultdict(dict)
+    for event in events:
+        try:
+            if event.activityType.activityTypeName in ['GUP', 'PUP', 'rapid-access', 'sector staff']:
+                if date >= event.startTime and date <= event.endTime:
+                        experiment_start = event.startTime
+        except:
+            ipdb.set_trace()
+            raise
+
+    return experiment_start
+
+def get_experiment_end(beamline='2-BM-A,B', date=None):
+    """Find the experiment end date for a given beamline and date
+
+    Returns experiment_end."""
+    runScheduleServiceClient, beamlineScheduleServiceClient = setup_connection()
+    if not date:
+        date = datetime.datetime.now()
+    run_name = findRunName(date, date)
+    schedule = findBeamlineSchedule(beamline, run_name)
+
+    events = schedule.activities.activity
+    users = defaultdict(dict)
+    for event in events:
+        try:
+            if event.activityType.activityTypeName in ['GUP', 'PUP', 'rapid-access', 'sector staff']:
+                if date >= event.startTime and date <= event.endTime:
+                        experiment_end = event.endTime
+        except:
+            ipdb.set_trace()
+            raise
+
+    return experiment_end
+
+def get_beamtime_request(beamline='2-BM-A,B', date=None):
+    """Find the proposal beamtime request id for a given beamline and date
+
+    Returns users."""
+    runScheduleServiceClient, beamlineScheduleServiceClient = setup_connection()
+    if not date:
+        date = datetime.datetime.now()
+    run_name = findRunName(date, date)
+    schedule = findBeamlineSchedule(beamline, run_name)
+
+    events = schedule.activities.activity
+
+    users = defaultdict(dict)
+    for event in events:
+        try:
+            if event.activityType.activityTypeName in ['GUP', 'PUP', 'rapid-access', 'sector staff']:
+                if date >= event.startTime and date <= event.endTime:
+                        beamtime_request = event.beamtimeRequest.id
+        except:
+            ipdb.set_trace()
+            raise
+
+    return beamtime_request
+    
 if __name__ == "__main__":
 
-# Global settings
-    hdf5_file_name = '/local/dataraid/databank/tmp/test/ALS.h5'
-    hdf5_file_name = '/local/prom04/tmp/test_30.h5'
-
-    beamline = '2-BM-A,B'
-    instrument_name = 'microCT'
+    # Global settings
     beamline = '32-ID-B,C'
     instrument_name = 'TXM'
 
-    sample_name = "sample_30"
-
-    #now = datetime.datetime(year, month, day, hour, min, s)
-    now = datetime.datetime(2014, 10, 18, 10, 10, 30).replace(tzinfo=pytz.timezone('US/Central'))
-    #now = datetime.datetime(2014, 10, 19, 10, 10, 30).replace(tzinfo=pytz.timezone('US/Central'))
-    #now = datetime.datetime(2014, 10, 27, 10, 10, 30).replace(tzinfo=pytz.timezone('US/Central'))
-    #now = datetime.datetime(2014, 11, 03, 10, 10, 30).replace(tzinfo=pytz.timezone('US/Central'))
-    #now = datetime.datetime(2014, 11, 5, 10, 10, 30).replace(tzinfo=pytz.timezone('US/Central'))
-    #now = datetime.datetime(2014, 11, 15, 10, 10, 30).replace(tzinfo=pytz.timezone('US/Central'))
-    #now = datetime.datetime(2014, 11, 24, 10, 10, 30).replace(tzinfo=pytz.timezone('US/Central'))
-    #now = datetime.datetime(2014, 12, 01, 10, 10, 30).replace(tzinfo=pytz.timezone('US/Central'))
-    #now = datetime.datetime(2014, 12, 8, 10, 10, 30).replace(tzinfo=pytz.timezone('US/Central'))
     #now = datetime.datetime.now(pytz.timezone('US/Central'))
+    now = datetime.datetime(2014, 10, 18, 10, 10, 30).replace(tzinfo=pytz.timezone('US/Central'))
 
     datetime_format = '%Y-%m-%dT%H:%M:%S%z'
     print "Time of Day: ", now.strftime(datetime_format)
 
-# PV settings
-    current  = pv.current.get()
-    top_up_status = pv.top_up_status.get()
-    aps_mode = 'Regular Fill'    
-    if top_up_status == 1:
-        aps_mode = 'Top-up'
-    
-    energy = pv.undulator_energy.get()
-    energy_dcm = pv.energy_dcm.get()
-    undulator_gap = pv.undulator_gap.get()
-    mirror_x = pv.mirror_x.get()
-    mirror_y = pv.mirror_y.get()
-    ccd_camera_objective_mode = pv.ccd_camera_objective_mode.get()
-    if ccd_camera_objective_mode == 0:
-        ccd_camera_objective = pv.ccd_camera_objective_label_0.get() 
-        ccd_camera_objective_manufacturer = 'Zeiss' 
-        ccd_camera_objective_model = 'Epiplan-Neofluar HD (422310-9900-000)'
-        ccd_camera_objective_magnification = '1.25'
-        ccd_camera_objective_numerical_aperture = '0.03'
-    if ccd_camera_objective_mode == 1:
-        ccd_camera_objective = pv.ccd_camera_objective_label_1.get()
-        ccd_camera_objective_manufacturer = 'Zeiss' 
-        ccd_camera_objective_model = 'Fluar (420130-9900-000)'
-        ccd_camera_objective_magnification = '5'
-        ccd_camera_objective_numerical_aperture = '0.25'
-    if ccd_camera_objective_mode == 2:
-        ccd_camera_objective = pv.ccd_camera_objective_label_2.get()
-        ccd_camera_objective_manufacturer = 'Zeiss' 
-        ccd_camera_objective_model = 'EC Epiplan-Neofluar HD (000000-1156-524)'
-        ccd_camera_objective_magnification = '20'
-        ccd_camera_objective_numerical_aperture = '0.5'
-        
-    
-    print "Current: ", current
-    print "Top Up Status: ", top_up_status
-    print "Undulator Energy: ", energy
-    print "Undulator Gap:", undulator_gap
-    print "Energy DCM: ", energy_dcm
-    print "Mirror X", mirror_x
-    print "Mirror Y", mirror_y
-    print "CCD camera objective number", ccd_camera_objective_mode
-    print "CCD camera objective label", ccd_camera_objective
-
-# scheduling system settings
+    # scheduling system settings
     runScheduleServiceClient, beamlineScheduleServiceClient = setup_connection()
     run_name = findRunName(now.replace(tzinfo=None), now.replace(tzinfo=None))
-    schedule = findBeamlineSchedule(beamline, run_name)
-    beamline_request = findBeamtimeRequestsByBeamline(beamline, run_name)
-    users = get_users(beamline, now.replace(tzinfo=None))
-    proposal_id = get_proposal_id(beamline, now.replace(tzinfo=None))
-    proposal_title = str(get_proposal_title(beamline, now.replace(tzinfo=None)))
-    
-    print "Proposal Title: ", proposal_title
-    #print beamline_request
+    run_schedule = findBeamlineSchedule(beamline, run_name)
+    #run_beamline_request = findBeamtimeRequestsByBeamline(beamline, run_name)
 
+    proposal_id = get_proposal_id(beamline, now.replace(tzinfo=None))
+    beamtime_request = get_beamtime_request(beamline, now.replace(tzinfo=None))
+    proposal_title = str(get_proposal_title(beamline, now.replace(tzinfo=None)))
+    experiment_start = str(get_experiment_start(beamline, now.replace(tzinfo=None)))
+    experiment_end = str(get_experiment_end(beamline, now.replace(tzinfo=None)))
+    users = get_users(beamline, now.replace(tzinfo=None))
+
+    print "Run Name: ", run_name 
+    #print "Run Schedule: ", run_schedule 
+    #print run_beamline_request 
+    #print users 
+    print "GUP: ", proposal_id 
+    print "Proposal Title: ", proposal_title
+    print "Experiment Start: ", experiment_start
+    print "Experiment End: ", experiment_end
+    print "Beamtime Request: ",  beamtime_request 
+    
     # find the Principal Investigator
     for tag in users:
         if users[tag].get('piFlag') != None:
             name = str(users[tag]['firstName'] + ' ' + users[tag]['lastName'])            
-            role = "Project PI"
-            affiliation = str(users[tag]['institution'])
-            facility_user_id = str(users[tag]['badge'])
+            role = "*"
+            institution = str(users[tag]['institution'])
+            badge = str(users[tag]['badge'])
             email = str(users[tag]['email'])
-            print role, name, affiliation, facility_user_id, email
+            print role, badge, name, institution, email
         else:            
-            print users[tag]['badge'], users[tag]['firstName'], users[tag]['lastName'], users[tag]['institution']
+            print users[tag]['badge'], users[tag]['firstName'], users[tag]['lastName'], users[tag]['institution'], users[tag]['email']
+            
+    # find user emails
+    print "Data owner emails: "
+    for tag in users:
+        if users[tag].get('email') != None:
+            email = str(users[tag]['email'])
+            print email
+        else:            
+            print "Missing e-mail for:", users[tag]['badge'], users[tag]['firstName'], users[tag]['lastName'], users[tag]['institution']
 
-# adding tags to the Data Exchange file
-    if (hdf5_file_name != None):
-        if os.path.isfile(hdf5_file_name):
-            print "Data Exchange file: [%s] already exists", hdf5_file_name
-            # Open DataExchange file
-            f = File(hdf5_file_name, mode='a') 
+    data_directory = 'd' + str(proposal_id) + str(beamtime_request)
+    os.system('mkdir '+ data_directory)
+    print "Created directory: ", data_directory
 
-        else:
-            print "Creating Data Exchange File [%s]", hdf5_file_name
-            # Create new folder.
-            dirPath = os.path.dirname(hdf5_file_name)
-            if not os.path.exists(dirPath):
-                os.makedirs(dirPath)
-
-            # Get the file_name in lower case.
-            lFn = hdf5_file_name.lower()
-
-            # Split the string with the delimeter '.'
-            end = lFn.split('.')
-
-            # Open DataExchange file
-            f = File(hdf5_file_name, mode='w') 
-
-        # Create HDF5 subgroup
-        # /measurement/instrument
-        f.add_entry(Entry.instrument(name={'value': instrument_name}) )
-
-        f.add_entry(Entry.source(name={'value': 'Advanced Photon Source'},
-                                            date_time={'value': now.strftime(datetime_format)},
-                                            beamline={'value': beamline},
-                                            current={'value': current, 'units': 'mA', 'dataset_opts': {'dtype': 'd'}},
-                                            energy={'value': 7.0, 'units':'GeV', 'dataset_opts': {'dtype': 'd'}},
-                                            mode={'value':aps_mode}
-                                            )
-        )
-        # Create HDF5 subgroup
-        # /measurement/instrument/attenuator
-        f.add_entry(Entry.attenuator(thickness={'value': 1e-3, 'units': 'm', 'dataset_opts': {'dtype': 'd'}},
-                                                type={'value': 'Al'}
-                                                )
-            )
-
-        # Create HDF5 subgroup
-        # Create HDF5 subgroup
-        # /measurement/instrument/monochromator
-        f.add_entry(Entry.monochromator(type={'value': 'double crystal monochromator'},
-                                                    energy={'value': energy_dcm, 'units': 'keV', 'dataset_opts': {'dtype': 'd'}},
-                                                    energy_error={'value': 1e-5, 'units': 'keV', 'dataset_opts': {'dtype': 'd'}},
-                                                    mono_stripe={'value': 'Si (1,1,1)'},
-                                                    )
-            )
-
-        # Create HDF5 subgroup
-        # /measurement/experimenter
-        #print role, name, affiliation, facility_user_id, email
-
-        f.add_entry(Entry.experimenter(name={'value':name},
-                                                    role={'value':role},
-                                                    affiliation={'value':affiliation},
-                                                    facility_user_id={'value':facility_user_id},
-                                                    email={'value':email}
-                        )
-            )
-
-        f.add_entry(Entry.objective(manufacturer={'value':ccd_camera_objective_manufacturer},
-                                                    model={'value':ccd_camera_objective_model},
-                                                    magnification={'value':ccd_camera_objective_magnification},
-                                                    numerical_aperture={'value':ccd_camera_objective_numerical_aperture}
-                        )
-            )
-
-        f.add_entry(Entry.scintillator(manufacturer={'value':'Crytur'},
-                                                    serial_number={'value':'12'},
-                                                    name={'value':'LuAg'},
-                                                    type={'value':'LuAg'},
-                                                    scintillating_thickness={'value':50e-6, 'dataset_opts': {'dtype': 'd'}},
-                                                    substrate_thickness={'value':50e-6, 'dataset_opts': {'dtype': 'd'}},
-                )
-            )
-
-        # Create HDF5 subgroup
-        # /measurement/experiment
-        f.add_entry( Entry.experiment(proposal={'value':proposal_id}
-                    )
-            )
-
-        if (sample_name != None):
-            f.add_entry(Entry.sample(root='/measurement', 
-                                                    name={'value':sample_name}, 
-                                                    description={'value':proposal_title}),
-                                                    overwrite=True
-                                                )
-
-    f.close()
-
+        
+    
