@@ -3,8 +3,8 @@
 .. module:: data_management.py
    :platform: Unix
    :synopsis:   Finds users running at specific date, 
-                creates and share top data folder 
-                share top data folder with the users liste in the proposal 
+                Creates top data directory 
+                Share top data directory with the users listed in the proposal 
    :INPUT
       Date of the experiments 
 
@@ -98,10 +98,12 @@ def findRunName(startDate, endDate):
     try:
         result = runScheduleServiceClient.service.findAllRuns()
     except Exception:
-        print "ERROR in findRunName"
+        print "Exception ERROR in findRunName"
+        print "Unable to contact data servicesl"
+        print "Request timed out."        print "The request timeout for the sent message was reached without receiving a response from the server."
         sys.exit(2)
     except soapFault:
-        print "ERROR in findRunName"
+        print "Soap fault ERROR in findRunName"
         print soapFault
         sys.exit(2)
     runArray = result.run
@@ -321,20 +323,20 @@ def get_beamtime_request(beamline='2-BM-A,B', date=None):
     
 if __name__ == "__main__":
 
-    # Global settings
-    beamline = '32-ID-B,C'
-    instrument_name = 'TXM'
-
+    # Input parameters
     #now = datetime.datetime.now(pytz.timezone('US/Central'))
     now = datetime.datetime(2014, 10, 18, 10, 10, 30).replace(tzinfo=pytz.timezone('US/Central'))
-
+    beamline = '32-ID-B,C'
+    print "Inputs: "
     datetime_format = '%Y-%m-%dT%H:%M:%S%z'
-    print "Time of Day: ", now.strftime(datetime_format)
+    print "\tTime of Day: ", now.strftime(datetime_format)
+    print "\tBeamline: ", beamline
 
     # scheduling system settings
+    print "\n\tAccessing the APS Scheduling System ... "
     runScheduleServiceClient, beamlineScheduleServiceClient = setup_connection()
     run_name = findRunName(now.replace(tzinfo=None), now.replace(tzinfo=None))
-    run_schedule = findBeamlineSchedule(beamline, run_name)
+    #run_schedule = findBeamlineSchedule(beamline, run_name)
     #run_beamline_request = findBeamtimeRequestsByBeamline(beamline, run_name)
 
     proposal_id = get_proposal_id(beamline, now.replace(tzinfo=None))
@@ -344,15 +346,20 @@ if __name__ == "__main__":
     experiment_end = str(get_experiment_end(beamline, now.replace(tzinfo=None)))
     users = get_users(beamline, now.replace(tzinfo=None))
 
-    print "Run Name: ", run_name 
+    print "\nOutputs: "
+    print "\tRun Name: ", run_name 
     #print "Run Schedule: ", run_schedule 
-    #print run_beamline_request 
-    #print users 
-    print "GUP: ", proposal_id 
-    print "Proposal Title: ", proposal_title
-    print "Experiment Start: ", experiment_start
-    print "Experiment End: ", experiment_end
-    print "Beamtime Request: ",  beamtime_request 
+    #print "Run Beamline Request: ", run_beamline_request 
+    print "\tGUP: ", proposal_id 
+    print "\tBeamtime Request: ",  beamtime_request 
+
+    datetime_format = '%Y_%m'
+    
+    data_directory = now.strftime(datetime_format) + '-' + str(proposal_id) + str(beamtime_request)
+    print "\n\tCreating directory: ", data_directory
+    os.system('mkdir '+ data_directory)
+
+    print "\n\tUser associated to ", data_directory, ":"
     
     # find the Principal Investigator
     for tag in users:
@@ -362,22 +369,21 @@ if __name__ == "__main__":
             institution = str(users[tag]['institution'])
             badge = str(users[tag]['badge'])
             email = str(users[tag]['email'])
-            print role, badge, name, institution, email
+            print "\t\t", role, badge, name, institution, email
         else:            
-            print users[tag]['badge'], users[tag]['firstName'], users[tag]['lastName'], users[tag]['institution'], users[tag]['email']
+            print "\t\t", users[tag]['badge'], users[tag]['firstName'], users[tag]['lastName'], users[tag]['institution'], users[tag]['email']
             
+    print "\n\tProposal Title: ", proposal_title
+    print "\tExperiment Start: ", experiment_start
+    print "\tExperiment End: ", experiment_end
+
     # find user emails
-    print "Data owner emails: "
+    print "\n\tSend email to: "
     for tag in users:
         if users[tag].get('email') != None:
             email = str(users[tag]['email'])
-            print email
+            print "\t\t", email
         else:            
-            print "Missing e-mail for:", users[tag]['badge'], users[tag]['firstName'], users[tag]['lastName'], users[tag]['institution']
+            print "\tMissing e-mail for:", users[tag]['badge'], users[tag]['firstName'], users[tag]['lastName'], users[tag]['institution']
 
-    data_directory = 'd' + str(proposal_id) + str(beamtime_request)
-    os.system('mkdir '+ data_directory)
-    print "Created directory: ", data_directory
-
-        
-    
+    print "\twith a token to globus share the folder called: ", os.path.abspath(data_directory)
