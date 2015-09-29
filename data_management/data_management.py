@@ -353,11 +353,12 @@ if __name__ == "__main__":
     print "\tGUP: ", proposal_id 
     print "\tBeamtime Request: ",  beamtime_request 
 
-    datetime_format = '%Y_%m'
+    datetime_format = '%Y-%m'
     
-    data_directory = now.strftime(datetime_format) + '-' + str(proposal_id) + str(beamtime_request)
+    data_directory = now.strftime(datetime_format) + '/' + 'g' + str(proposal_id) + 'r' + str(beamtime_request)
     print "\n\tCreating directory: ", data_directory
-    os.system('mkdir '+ data_directory)
+    os.makedirs(data_directory)    
+    #os.system('mkdir '+ data_directory)
 
     print "\n\tUser associated to ", data_directory, ":"
     
