@@ -57,6 +57,13 @@ password = cf.get('credentials', 'password')
 #base = cf.get('hosts', 'internal')
 base = cf.get('hosts', 'external')
 
+
+beamline = '32-ID-B,C'
+data_archive = "dm/" 
+
+globus_ssh = "ssh usr32idc@cli.globusonline.org"
+globus_share_txmtwo_folder = "/local/dataraid/"
+
 class HTTPSConnectionV3(httplib.HTTPSConnection):
     def __init__(self, *args, **kwargs):
         httplib.HTTPSConnection.__init__(self, *args, **kwargs)
@@ -321,50 +328,70 @@ def get_beamtime_request(beamline='2-BM-A,B', date=None):
 
     return beamtime_request
     
-if __name__ == "__main__":
-
-    # Input parameters
-    #now = datetime.datetime.now(pytz.timezone('US/Central'))
-    now = datetime.datetime(2014, 10, 18, 10, 10, 30).replace(tzinfo=pytz.timezone('US/Central'))
-    beamline = '32-ID-B,C'
-    globus_share = "/local/dataraid/"
-    data_archive = "dm/"
+def create_unique_experiment_id(beamline='2-BM-A,B', date=None):
     
+    datetime_format = '%Y-%m-%dT%H:%M:%S%z'
+   
+    # scheduling system settings
+    print "\n\tAccessing the APS Scheduling System ... "
+    runScheduleServiceClient, beamlineScheduleServiceClient = setup_connection()
+    proposal_id = get_proposal_id(beamline, date.replace(tzinfo=None))
+    beamtime_request = get_beamtime_request(beamline, date.replace(tzinfo=None))
+    
+    experiment_id = 'g' + str(proposal_id) + 'r' + str(beamtime_request)
+    print "\tUnique experiment ID: ",  experiment_id     
+
+    return experiment_id
+
+def list_experiment_info(beamline='2-BM-A,B', date=None):
     print "Inputs: "
     datetime_format = '%Y-%m-%dT%H:%M:%S%z'
-    print "\tTime of Day: ", now.strftime(datetime_format)
+    print "\tTime of Day: ", date.strftime(datetime_format)
     print "\tBeamline: ", beamline
 
     # scheduling system settings
     print "\n\tAccessing the APS Scheduling System ... "
     runScheduleServiceClient, beamlineScheduleServiceClient = setup_connection()
+
     run_name = findRunName(now.replace(tzinfo=None), now.replace(tzinfo=None))
+    proposal_title = get_proposal_title(beamline, date.replace(tzinfo=None))
+    users = get_users(beamline, date.replace(tzinfo=None))
+    experiment_start = get_experiment_start(beamline, date.replace(tzinfo=None))
+    experiment_end = get_experiment_end(beamline, date.replace(tzinfo=None))
 
-    proposal_id = get_proposal_id(beamline, now.replace(tzinfo=None))
-    beamtime_request = get_beamtime_request(beamline, now.replace(tzinfo=None))
-    proposal_title = str(get_proposal_title(beamline, now.replace(tzinfo=None)))
-    experiment_start = str(get_experiment_start(beamline, now.replace(tzinfo=None)))
-    experiment_end = str(get_experiment_end(beamline, now.replace(tzinfo=None)))
-    users = get_users(beamline, now.replace(tzinfo=None))
-
-    print "\nOutputs: "
     print "\tRun Name: ", run_name 
-    print "\tGUP: ", proposal_id 
-    print "\tBeamtime Request: ",  beamtime_request 
+    print "\n\tProposal Title: ", proposal_title
+    print "\tExperiment Start: ", experiment_start
+    print "\tExperiment End: ", experiment_end
+    # print user emails
+    print "\n\tUser email address: "
+    for tag in users:
+        if users[tag].get('email') != None:
+            email = str(users[tag]['email'])
+            print "\t\t", email
+        else:            
+            print "\tMissing e-mail for:", users[tag]['badge'], users[tag]['firstName'], users[tag]['lastName'], users[tag]['institution']
 
-    datetime_format = '%Y-%m'
+def find_experiment_start(beamline='2-BM-A,B', date=None):
+
+    datetime_format = '%Y-%m-%dT%H:%M:%S%z'
+
+    # scheduling system settings
+    print "\n\tAccessing the APS Scheduling System ... "
+    runScheduleServiceClient, beamlineScheduleServiceClient = setup_connection()
+
+    experiment_start = get_experiment_start(beamline, date.replace(tzinfo=None))
+    print "\tExperiment Start: ", experiment_start
+ 
+    return experiment_start
     
-    data_directory = globus_share + data_archive + now.strftime(datetime_format) + os.sep + 'g' + str(proposal_id) + 'r' + str(beamtime_request)
-    data_share = data_archive + now.strftime(datetime_format) + os.sep + 'g' + str(proposal_id) + 'r' + str(beamtime_request)
+def find_users(beamline='2-BM-A,B', date=None):
+    # scheduling system settings
+    print "\n\tAccessing the APS Scheduling System ... "
+    runScheduleServiceClient, beamlineScheduleServiceClient = setup_connection()
 
-    if os.path.exists(data_directory) == False: 
-        os.makedirs(data_directory)    
-        print "\n\tCreating unique data directory: ", data_directory
-    else:
-        print "\n\tDirectory already exists: ", data_directory
+    users = get_users(beamline, date.replace(tzinfo=None))
 
-    print "\n\tUser associated to ", data_directory, ":"
-    
     # find the Principal Investigator
     for tag in users:
         if users[tag].get('piFlag') != None:
@@ -376,24 +403,28 @@ if __name__ == "__main__":
             print "\t\t", role, badge, name, institution
         else:            
             print "\t\t", users[tag]['badge'], users[tag]['firstName'], users[tag]['lastName'], users[tag]['institution']
-    
     print "\t(*) Proposal PI"        
-    print "\n\tProposal Title: ", proposal_title
-    print "\tExperiment Start: ", experiment_start
-    print "\tExperiment End: ", experiment_end
-
-    # find user emails
-    print "\n\tUser email address: "
-    for tag in users:
-        if users[tag].get('email') != None:
-            email = str(users[tag]['email'])
-            print "\t\t", email
-        else:            
-            print "\tMissing e-mail for:", users[tag]['badge'], users[tag]['firstName'], users[tag]['lastName'], users[tag]['institution']
-
     
-    print "\n\tSend a token to globus share the folder called: ", data_share
-    globus_ssh = "\t\tssh usr32idc@cli.globusonline.org"
+    return users
+
+def create_unique_directory(exp_start, exp_id):
+    
+    datetime_format = '%Y-%m'
+    data_directory = globus_share_txmtwo_folder + data_archive + str(exp_start.strftime(datetime_format)) + os.sep + exp_id
+
+    if os.path.exists(data_directory) == False: 
+        os.makedirs(data_directory)    
+        print "\n\tCreating unique data directory: ", data_directory
+    else:
+        print "\n\tDirectory already exists: ", data_directory
+    
+    return data_directory
+
+def globus_share_txmtwo(exp_start, exp_id, users):
+
+    datetime_format = '%Y-%m'
+    data_share = data_archive + exp_start.strftime(datetime_format) + os.sep + exp_id
+    print "\n\tSend a token to globus share the folder on txmtwo called: ", data_share
     for tag in users:
         if users[tag].get('email') != None:
             email = str(users[tag]['email'])
@@ -403,13 +434,54 @@ if __name__ == "__main__":
     # for demo
     email = 'decarlo@aps.anl.gov'
     globus_add = "acl-add usr32idc#dataraid" + os.sep + data_share + os.sep + " --perm r --email " + email
-    globus_scp = globus_ssh + " scp -r usr32idc#dataraid:" + os.sep + data_share + os.sep + " petrel#tomography:/dm/"
-    
-    print "\n", globus_scp
-    print globus_ssh + " " + globus_add
-    print "\n\n====================================="
-    print "Data are backed up on petrel"
-    print "====================================="
-    print "Check your email to download the data"
-    print "====================================="
 
+    cmd = globus_ssh + " " + globus_add
+    print cmd
+    os.system(cmd)
+    print "\n\n================================================="
+    print "Check your email to download the data from txmtwo"
+    print "================================================="
+
+def globus_cp_share_petrel(exp_start, exp_id, users):
+
+    datetime_format = '%Y-%m'
+    data_share = data_archive + exp_start.strftime(datetime_format) + os.sep + exp_id
+    globus_scp = globus_ssh + " scp -r usr32idc#dataraid:" + os.sep + data_share + os.sep + " petrel#tomography:/dm/"
+    print "\n", globus_scp
+
+    datetime_format = '%Y-%m'
+    data_share = data_archive + exp_start.strftime(datetime_format) + os.sep + exp_id
+    print "\n\tSend a token to globus share the folder on petrel called: ", data_share
+    for tag in users:
+        if users[tag].get('email') != None:
+            email = str(users[tag]['email'])
+            globus_add = "acl-add usr32idc#dataraid" + os.sep + data_share + os.sep + " --perm r --email " + email
+            print globus_ssh + " " + globus_add
+    
+    # for demo
+    email = 'decarlo@aps.anl.gov'
+    globus_add = "acl-add petrel#tomography/dm" + os.sep + data_share + os.sep + " --perm r --email " + email
+    
+    cmd = globus_ssh + " " + globus_add
+    print cmd
+    # os.system(cmd)
+    print "\n\n================================================="
+    print "Check your email to download the data from petrel"
+    print "================================================="
+       
+if __name__ == "__main__":
+
+    # Input parameters
+    #now = datetime.datetime.now(pytz.timezone('US/Central'))
+    now = datetime.datetime(2014, 10, 18, 10, 10, 30).replace(tzinfo=pytz.timezone('US/Central'))
+
+    print "Input (experiment date): ", now
+    #list_experiment_info(beamline, now)
+    exp_id = create_unique_experiment_id(beamline, now)
+    exp_start = find_experiment_start(beamline, now)
+                      
+    data_directory = create_unique_directory(exp_start, exp_id)
+
+    users = find_users(beamline, now)
+    globus_share_txmtwo(exp_start, exp_id, users)
+    globus_cp_share_petrel(exp_start, exp_id, users)
