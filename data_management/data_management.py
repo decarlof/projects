@@ -359,7 +359,7 @@ if __name__ == "__main__":
 
     if os.path.exists(data_directory) == False: 
         os.makedirs(data_directory)    
-        print "\n\tCreating directory: ", data_directory
+        print "\n\tCreating unique data directory: ", data_directory
     else:
         print "\n\tDirectory already exists: ", data_directory
 
