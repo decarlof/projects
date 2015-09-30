@@ -3,8 +3,8 @@
 .. module:: data_management.py
    :platform: Unix
    :synopsis:   Finds users running at specific date, 
-                Creates top data directory 
-                Share top data directory with the users listed in the proposal 
+                Creates a unique name data directory 
+                Share via Globus the data directory with the users listed in the proposal 
    :INPUT
       Date of the experiments 
 
@@ -327,6 +327,9 @@ if __name__ == "__main__":
     #now = datetime.datetime.now(pytz.timezone('US/Central'))
     now = datetime.datetime(2014, 10, 18, 10, 10, 30).replace(tzinfo=pytz.timezone('US/Central'))
     beamline = '32-ID-B,C'
+    globus_share = "/local/dataraid/"
+    data_archive = "dm/"
+    
     print "Inputs: "
     datetime_format = '%Y-%m-%dT%H:%M:%S%z'
     print "\tTime of Day: ", now.strftime(datetime_format)
@@ -336,8 +339,6 @@ if __name__ == "__main__":
     print "\n\tAccessing the APS Scheduling System ... "
     runScheduleServiceClient, beamlineScheduleServiceClient = setup_connection()
     run_name = findRunName(now.replace(tzinfo=None), now.replace(tzinfo=None))
-    #run_schedule = findBeamlineSchedule(beamline, run_name)
-    #run_beamline_request = findBeamtimeRequestsByBeamline(beamline, run_name)
 
     proposal_id = get_proposal_id(beamline, now.replace(tzinfo=None))
     beamtime_request = get_beamtime_request(beamline, now.replace(tzinfo=None))
@@ -348,17 +349,19 @@ if __name__ == "__main__":
 
     print "\nOutputs: "
     print "\tRun Name: ", run_name 
-    #print "Run Schedule: ", run_schedule 
-    #print "Run Beamline Request: ", run_beamline_request 
     print "\tGUP: ", proposal_id 
     print "\tBeamtime Request: ",  beamtime_request 
 
     datetime_format = '%Y-%m'
     
-    data_directory = now.strftime(datetime_format) + '/' + 'g' + str(proposal_id) + 'r' + str(beamtime_request)
-    print "\n\tCreating directory: ", data_directory
-    os.makedirs(data_directory)    
-    #os.system('mkdir '+ data_directory)
+    data_directory = globus_share + data_archive + now.strftime(datetime_format) + os.sep + 'g' + str(proposal_id) + 'r' + str(beamtime_request)
+    data_share = data_archive + now.strftime(datetime_format) + os.sep + 'g' + str(proposal_id) + 'r' + str(beamtime_request)
+
+    if os.path.exists(data_directory) == False: 
+        os.makedirs(data_directory)    
+        print "\n\tCreating directory: ", data_directory
+    else:
+        print "\n\tDirectory already exists: ", data_directory
 
     print "\n\tUser associated to ", data_directory, ":"
     
@@ -370,16 +373,17 @@ if __name__ == "__main__":
             institution = str(users[tag]['institution'])
             badge = str(users[tag]['badge'])
             email = str(users[tag]['email'])
-            print "\t\t", role, badge, name, institution, email
+            print "\t\t", role, badge, name, institution
         else:            
-            print "\t\t", users[tag]['badge'], users[tag]['firstName'], users[tag]['lastName'], users[tag]['institution'], users[tag]['email']
-            
+            print "\t\t", users[tag]['badge'], users[tag]['firstName'], users[tag]['lastName'], users[tag]['institution']
+    
+    print "\t(*) Proposal PI"        
     print "\n\tProposal Title: ", proposal_title
     print "\tExperiment Start: ", experiment_start
     print "\tExperiment End: ", experiment_end
 
     # find user emails
-    print "\n\tSend email to: "
+    print "\n\tUser email address: "
     for tag in users:
         if users[tag].get('email') != None:
             email = str(users[tag]['email'])
@@ -387,4 +391,25 @@ if __name__ == "__main__":
         else:            
             print "\tMissing e-mail for:", users[tag]['badge'], users[tag]['firstName'], users[tag]['lastName'], users[tag]['institution']
 
-    print "\twith a token to globus share the folder called: ", os.path.abspath(data_directory)
+    
+    print "\n\tSend a token to globus share the folder called: ", data_share
+    globus_ssh = "\t\tssh usr32idc@cli.globusonline.org"
+    for tag in users:
+        if users[tag].get('email') != None:
+            email = str(users[tag]['email'])
+            globus_add = "acl-add usr32idc#dataraid" + os.sep + data_share + os.sep + " --perm r --email " + email
+            print globus_ssh + " " + globus_add
+    
+    # for demo
+    email = 'decarlo@aps.anl.gov'
+    globus_add = "acl-add usr32idc#dataraid" + os.sep + data_share + os.sep + " --perm r --email " + email
+    globus_scp = globus_ssh + " scp -r usr32idc#dataraid:" + os.sep + data_share + os.sep + " petrel#tomography:/dm/"
+    
+    print "\n", globus_scp
+    print globus_ssh + " " + globus_add
+    print "\n\n====================================="
+    print "Data are backed up on petrel"
+    print "====================================="
+    print "Check your email to download the data"
+    print "====================================="
+
