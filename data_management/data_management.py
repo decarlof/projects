@@ -17,7 +17,6 @@ some scripts as needed.
 import os
 import pytz
 import datetime
-from globusonline.transfer.api_client import Transfer, create_client_from_args
 from suds.wsse import Security, UsernameToken
 from suds.client import Client
 from suds.transport.https import HttpAuthenticated
@@ -44,6 +43,10 @@ The credentials are stored in a '.ini' file and read by python.
  username = YOUR BADGE NUMBER
  password = YOUR APS WEB PASSWORD
 
+ [hosts]
+ internal = https: ....
+ external = https: .... 
+ 
  that's it.
 
 """
@@ -62,7 +65,7 @@ beamline = '32-ID-B,C'
 data_archive = "dm/" 
 
 globus_ssh = "ssh usr32idc@cli.globusonline.org"
-globus_share_txmtwo_folder = "/local/dataraid/"
+globus_share_folder = "/local/dataraid/"
 
 class HTTPSConnectionV3(httplib.HTTPSConnection):
     def __init__(self, *args, **kwargs):
@@ -410,7 +413,7 @@ def find_users(beamline='2-BM-A,B', date=None):
 def create_unique_directory(exp_start, exp_id):
     
     datetime_format = '%Y-%m'
-    data_directory = globus_share_txmtwo_folder + data_archive + str(exp_start.strftime(datetime_format)) + os.sep + exp_id
+    data_directory = globus_share_folder + data_archive + str(exp_start.strftime(datetime_format)) + os.sep + exp_id
 
     if os.path.exists(data_directory) == False: 
         os.makedirs(data_directory)    
