@@ -13,16 +13,29 @@
 
 import os
 import sys, getopt
+import ConfigParser
+
+cf = ConfigParser.ConfigParser()
+cf.read('globus_share.ini')
+globus_user = cf.get('globus', 'globus_user')
+globus_share_folder = cf.get('globus', 'globus_share_folder')  
+globus_share = cf.get('globus', 'globus_share') 
+globus_ssh = cf.get('globus', 'globus_ssh')
 
 # see README.txt to set a globus personal shared folder
-globus_user = 'usr32idc'
-globus_share_folder = "/local/dataraid/"
-globus_share = "#dataraid"
-globus_ssh = 'ssh ' + globus_user + '@cli.globusonline.org'
+#globus_user = 'usr32idc'
+#globus_share_folder = "/local/dataraid/"
+#globus_share = "#dataraid"
+#globus_ssh = 'ssh ' + globus_user + '@cli.globusonline.org'
 
 def main(argv):
     inputfile = ''
     outputfile = ''
+    print globus_user
+    print globus_share_folder
+    print globus_share
+    print globus_ssh
+
     try:
         opts, args = getopt.getopt(argv,"hf:e:",["ffolder=","eemail="])
     except getopt.GetoptError:
@@ -45,7 +58,8 @@ def main(argv):
     
     globus_add = "acl-add " + globus_user + globus_share + os.sep + inputfolder  + " --perm r --email " + inputemail
 
-    cmd = globus_ssh + " " + globus_add
+    cmd = "ssh " + globus_user + globus_ssh + " " + globus_add
+
     print cmd
     #os.system(cmd)
     print "Download link sent to: ", inputemail
