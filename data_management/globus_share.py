@@ -14,7 +14,9 @@
 import os
 import sys, getopt
 import ConfigParser
+from validate_email import validate_email
 
+# see README.txt to set a globus personal shared folder
 cf = ConfigParser.ConfigParser()
 cf.read('globus_share.ini')
 globus_user = cf.get('globus', 'globus_user')
@@ -22,19 +24,9 @@ globus_share_folder = cf.get('globus', 'globus_share_folder')
 globus_share = cf.get('globus', 'globus_share') 
 globus_ssh = cf.get('globus', 'globus_ssh')
 
-# see README.txt to set a globus personal shared folder
-#globus_user = 'usr32idc'
-#globus_share_folder = "/local/dataraid/"
-#globus_share = "#dataraid"
-#globus_ssh = 'ssh ' + globus_user + '@cli.globusonline.org'
-
 def main(argv):
-    inputfile = ''
-    outputfile = ''
-    print globus_user
-    print globus_share_folder
-    print globus_share
-    print globus_ssh
+    input_folder = ''
+    input_email = ''
 
     try:
         opts, args = getopt.getopt(argv,"hf:e:",["ffolder=","eemail="])
@@ -47,24 +39,27 @@ def main(argv):
             print 'globus_share.py -f <folder> -e <email>'
             sys.exit()
         elif opt in ("-f", "--ffolder"):
-            inputfolder = arg
+            input_folder = arg
         elif opt in ("-e", "--eemail"):
-            inputemail = arg
-    print 'Shared Folder is: ', inputfolder
-    print 'User e-mail is: ', inputemail
+            input_email = arg
     
-    #folder = "dm" + os.sep
-    #email = "decarlo@aps.anl.gov"
+    input_folder = os.path.normpath(input_folder) + os.sep # will add the trailing slash if it's not already there.
+
+    globus_add = "acl-add " + globus_user + globus_share + os.sep + input_folder  + " --perm r --email " + input_email
+
+    if validate_email(input_email) and os.path.isdir(globus_share_folder + input_folder):
+        cmd = "ssh " + globus_user + globus_ssh + " " + globus_add
+        print cmd
+        #os.system(cmd)
+        print "Download link sent to: ", input_email
+    else:
+        print "ERROR: "
+        if not validate_email(input_email):
+            print "email is not valid ..."
+        else:
+            print globus_share_folder + input_folder, "does not exists on the local server", 
+
     
-    globus_add = "acl-add " + globus_user + globus_share + os.sep + inputfolder  + " --perm r --email " + inputemail
-
-    cmd = "ssh " + globus_user + globus_ssh + " " + globus_add
-
-    print cmd
-    #os.system(cmd)
-    print "Download link sent to: ", inputemail
-
-
 if __name__ == "__main__":
     main(sys.argv[1:])
 
