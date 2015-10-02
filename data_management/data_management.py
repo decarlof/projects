@@ -447,6 +447,7 @@ def globus_share_txmtwo(exp_start, exp_id, users):
 
 def globus_cp_share_petrel(exp_start, exp_id, users):
 
+    # not tested yet
     datetime_format = '%Y-%m'
     data_share = data_archive + exp_start.strftime(datetime_format) + os.sep + exp_id
     globus_scp = globus_ssh + " scp -r usr32idc#dataraid:" + os.sep + data_share + os.sep + " petrel#tomography:/dm/"
@@ -487,4 +488,4 @@ if __name__ == "__main__":
 
     users = find_users(beamline, now)
     globus_share_txmtwo(exp_start, exp_id, users)
-    globus_cp_share_petrel(exp_start, exp_id, users)
+    #globus_cp_share_petrel(exp_start, exp_id, users)
