@@ -43,7 +43,10 @@ def main(argv):
         sys.exit(2)
     for opt, arg in opts:
         if opt == '-h':
-            print 'globus_share.py -f <folder> -e <email>'
+            print 'globus_copy_share.py -f <folder> -e <email>'
+            print 'copy data from globus connect personal ', local_server + local_share + os.sep + '<folder> to ' + remote_server + remote_share + os.sep + remote_shared_folder
+            print 'share data from', remote_server + remote_share + os.sep + remote_shared_folder + "<folder>", ' with ' + "<email>"
+
             sys.exit()
         elif opt in ("-f", "--ffolder"):
             input_folder = arg
@@ -52,12 +55,17 @@ def main(argv):
     
     input_folder = os.path.normpath(input_folder) + os.sep # will add the trailing slash if it's not already there.
 
-    globus_add = "acl-add " + local_server + local_share + os.sep + input_folder  + " --perm r --email " + input_email
+    globus_scp = "scp -r " + local_server + local_share + ":" + os.sep + input_folder + " " + remote_server + remote_share + remote_shared_folder
+    globus_add = "acl-add " + remote_server + remote_share + os.sep + remote_shared_folder + input_folder + " --perm r --email " + input_email
 
     if validate_email(input_email) and os.path.isdir(local_shared_folder + input_folder):
-        cmd = "ssh " + globus_user + globus_address + " " + globus_add
-        print cmd
-        #os.system(cmd)
+        cmd_1 = "ssh " + globus_user + globus_address + " " + globus_scp
+        cmd_2 = "ssh " + globus_user + globus_address + " " + globus_add
+        print cmd_1
+        #os.system(cmd1)
+        print "Done data trasfer to: ", remote_server
+        #os.system(cmd2)
+        print cmd_2
         print "Download link sent to: ", input_email
     else:
         print "ERROR: "

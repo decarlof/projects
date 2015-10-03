@@ -110,7 +110,8 @@ def findRunName(startDate, endDate):
     except Exception:
         print "Exception ERROR in findRunName"
         print "Unable to contact data servicesl"
-        print "Request timed out."        print "The request timeout for the sent message was reached without receiving a response from the server."
+        print "Request timed out."
+        print "The request timeout for the sent message was reached without receiving a response from the server."
         sys.exit(2)
     except soapFault:
         print "Soap fault ERROR in findRunName"
