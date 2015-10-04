@@ -30,6 +30,8 @@ import ipdb
 from collections import defaultdict
 import ConfigParser
 
+from validate_email import validate_email
+
 debug = False
 
 """ You must use the APS web password. You can check it by logging into
@@ -60,12 +62,41 @@ password = cf.get('credentials', 'password')
 #base = cf.get('hosts', 'internal')
 base = cf.get('hosts', 'external')
 
+# see README.txt to set a globus personal shared folder
+cf = ConfigParser.ConfigParser()
+cf.read('globus.ini')
+globus_address = cf.get('settings', 'cli_address')
+globus_user = cf.get('settings', 'cli_user')
+beamline = cf.get('settings', 'beamline')
+scp_options = cf.get('settings', 'scp_options')
 
-beamline = '32-ID-B,C'
-data_archive = "dm/" 
+local_user = cf.get('globus connect personal', 'user') 
+local_share = cf.get('globus connect personal', 'share') 
+local_shared_folder = cf.get('globus connect personal', 'shared_folder')  
+
+remote_user = cf.get('globus remote server', 'user') 
+remote_share = cf.get('globus remote server', 'share') 
+remote_shared_folder = cf.get('globus remote server', 'shared_folder')  
+
+#[settings]
+#cli_address = @cli.globusonline.org
+#cli_user = decarlo
+#beamline = 32-ID-B,C
+
+#[globus connect personal]
+#user = decarlo
+#share = #data
+#shared_directory = /Users/decarlo/data/
+
+#[globus remote server]
+#user = petrel
+#share = #tomography
+#shared_directory = dm/
+
 
 globus_ssh = "ssh usr32idc@cli.globusonline.org"
-globus_share_folder = "/local/dataraid/"
+globus_ssh = "ssh " + globus_user + globus_address
+
 
 class HTTPSConnectionV3(httplib.HTTPSConnection):
     def __init__(self, *args, **kwargs):
@@ -332,7 +363,7 @@ def get_beamtime_request(beamline='2-BM-A,B', date=None):
 
     return beamtime_request
     
-def create_unique_experiment_id(beamline='2-BM-A,B', date=None):
+def create_experiment_id(beamline='2-BM-A,B', date=None):
     
     datetime_format = '%Y-%m-%dT%H:%M:%S%z'
    
@@ -404,9 +435,9 @@ def find_users(beamline='2-BM-A,B', date=None):
             institution = str(users[tag]['institution'])
             badge = str(users[tag]['badge'])
             email = str(users[tag]['email'])
-            print "\t\t", role, badge, name, institution
+            print "\t\t", role, badge, name, institution, email
         else:            
-            print "\t\t", users[tag]['badge'], users[tag]['firstName'], users[tag]['lastName'], users[tag]['institution']
+            print "\t\t", users[tag]['badge'], users[tag]['firstName'], users[tag]['lastName'], users[tag]['institution'], users[tag]['email']
     print "\t(*) Proposal PI"        
     
     return users
@@ -414,65 +445,53 @@ def find_users(beamline='2-BM-A,B', date=None):
 def create_unique_directory(exp_start, exp_id):
     
     datetime_format = '%Y-%m'
-    data_directory = globus_share_folder + data_archive + str(exp_start.strftime(datetime_format)) + os.sep + exp_id
+    unique_directory = local_shared_folder + str(exp_start.strftime(datetime_format)) + os.sep + exp_id
 
-    if os.path.exists(data_directory) == False: 
-        os.makedirs(data_directory)    
-        print "\n\tCreating unique data directory: ", data_directory
+    if os.path.exists(unique_directory) == False: 
+        os.makedirs(unique_directory)    
+        print "\n\tCreating unique data directory: ", unique_directory
     else:
-        print "\n\tDirectory already exists: ", data_directory
+        print "\n\tDirectory already exists: ", unique_directory
     
-    return data_directory
+    return unique_directory
 
-def globus_share_txmtwo(exp_start, exp_id, users):
+def globus_local_share(directory, users):
 
-    datetime_format = '%Y-%m'
-    data_share = data_archive + exp_start.strftime(datetime_format) + os.sep + exp_id
-    print "\n\tSend a token to globus share the folder on txmtwo called: ", data_share
+    path_list = directory.split(os.sep)
+    data_share = path_list[len(path_list)-2] + os.sep + path_list[len(path_list)-1] + os.sep
+
+    print "\n\tSend a token to share the globus connect personal folder called: ", data_share
     for tag in users:
         if users[tag].get('email') != None:
             email = str(users[tag]['email'])
-            globus_add = "acl-add usr32idc#dataraid" + os.sep + data_share + os.sep + " --perm r --email " + email
-            print globus_ssh + " " + globus_add
-    
+            globus_add = "acl-add " + local_user + local_share + os.sep + data_share  + " --perm r --email " + email
+            if validate_email(email) and os.path.isdir(directory):
+                cmd = "ssh " + globus_user + globus_address + " " + globus_add
+                print cmd
+
     # for demo
     email = 'decarlo@aps.anl.gov'
-    globus_add = "acl-add usr32idc#dataraid" + os.sep + data_share + os.sep + " --perm r --email " + email
-
-    cmd = globus_ssh + " " + globus_add
+    globus_add = "acl-add " + local_user + local_share + os.sep + data_share  + " --perm r --email " + email
+    cmd = "ssh " + globus_user + globus_address + " " + globus_add
+    #print "ssh decarlo@cli.globusonline.org acl-add decarlo#data/2014-10/g40065r94918/ --perm r --email decarlof@gmail.com"
     print cmd
-    os.system(cmd)
-    print "\n\n================================================="
-    print "Check your email to download the data from txmtwo"
-    print "================================================="
+    #os.system(cmd)
+    print "\n\n=================================================================="
+    print "Check your email to download the data from globus connect personal"
+    print "=================================================================="
 
-def globus_cp_share_petrel(exp_start, exp_id, users):
+def globus_cp(directory, users):
+        
+    path_list = directory.split(os.sep)
+    data_share = path_list[len(path_list)-2] + os.sep + path_list[len(path_list)-1] + os.sep
 
-    # not tested yet
-    datetime_format = '%Y-%m'
-    data_share = data_archive + exp_start.strftime(datetime_format) + os.sep + exp_id
-    globus_scp = globus_ssh + " scp -r usr32idc#dataraid:" + os.sep + data_share + os.sep + " petrel#tomography:/dm/"
-    print "\n", globus_scp
-
-    datetime_format = '%Y-%m'
-    data_share = data_archive + exp_start.strftime(datetime_format) + os.sep + exp_id
-    print "\n\tSend a token to globus share the folder on petrel called: ", data_share
-    for tag in users:
-        if users[tag].get('email') != None:
-            email = str(users[tag]['email'])
-            globus_add = "acl-add usr32idc#dataraid" + os.sep + data_share + os.sep + " --perm r --email " + email
-            print globus_ssh + " " + globus_add
-    
-    # for demo
-    email = 'decarlo@aps.anl.gov'
-    globus_add = "acl-add petrel#tomography/dm" + os.sep + data_share + os.sep + " --perm r --email " + email
-    
-    cmd = globus_ssh + " " + globus_add
-    print cmd
-    # os.system(cmd)
-    print "\n\n================================================="
-    print "Check your email to download the data from petrel"
-    print "================================================="
+    globus_scp = "scp -r " + local_user + local_share + ":" + os.sep + data_share + " " + remote_user + remote_share + ":" + remote_shared_folder
+    if os.path.isdir(directory):
+        cmd = "ssh " + globus_user + globus_address + " " + globus_scp + " " + scp_options
+        #print "ssh decarlo@cli.globusonline.org scp -r decarlo#data:/txm/ petrel#tomography:dm/"
+        print cmd
+        #os.system(cmd1)
+        print "Done data trasfer to: ", remote_user
        
 if __name__ == "__main__":
 
@@ -482,11 +501,11 @@ if __name__ == "__main__":
 
     print "Input (experiment date): ", now
     #list_experiment_info(beamline, now)
-    exp_id = create_unique_experiment_id(beamline, now)
+    exp_id = create_experiment_id(beamline, now)
     exp_start = find_experiment_start(beamline, now)
                       
-    data_directory = create_unique_directory(exp_start, exp_id)
+    unique_directory = create_unique_directory(exp_start, exp_id)
 
     users = find_users(beamline, now)
-    globus_share_txmtwo(exp_start, exp_id, users)
-    #globus_cp_share_petrel(exp_start, exp_id, users)
+    globus_local_share(unique_directory, users)
+    globus_cp(unique_directory, users)

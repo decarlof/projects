@@ -16,20 +16,19 @@ import sys, getopt
 import ConfigParser
 from validate_email import validate_email
 
-
 # see README.txt to set a globus personal shared folder
 cf = ConfigParser.ConfigParser()
 cf.read('globus.ini')
 globus_address = cf.get('settings', 'cli_address')
 globus_user = cf.get('settings', 'cli_user')
 
-local_server = cf.get('globus connect personal', 'server') 
+local_user = cf.get('globus connect personal', 'user') 
 local_share = cf.get('globus connect personal', 'share') 
-local_shared_folder = cf.get('globus connect personal', 'shared_directory')  
+local_shared_folder = cf.get('globus connect personal', 'shared_folder')  
 
-remote_server = cf.get('globus remote server', 'server') 
+remote_user = cf.get('globus remote server', 'user') 
 remote_share = cf.get('globus remote server', 'share') 
-remote_shared_folder = cf.get('globus remote server', 'shared_directory')  
+remote_shared_folder = cf.get('globus remote server', 'shared_folder')  
 
 def main(argv):
     input_folder = ''
@@ -44,8 +43,8 @@ def main(argv):
     for opt, arg in opts:
         if opt == '-h':
             print 'globus_copy_share.py -f <folder> -e <email>'
-            print 'copy data from globus connect personal ', local_server + local_share + os.sep + '<folder> to ' + remote_server + remote_share + os.sep + remote_shared_folder
-            print 'share data from', remote_server + remote_share + os.sep + remote_shared_folder + "<folder>", ' with ' + "<email>"
+            print 'copy data from globus connect personal ', local_user + local_share + os.sep + '<folder> to ' + remote_user + remote_share + os.sep + remote_shared_folder
+            print 'share data from', remote_user + remote_share + os.sep + remote_shared_folder + "<folder>", ' with ' + "<email>"
 
             sys.exit()
         elif opt in ("-f", "--ffolder"):
@@ -55,17 +54,20 @@ def main(argv):
     
     input_folder = os.path.normpath(input_folder) + os.sep # will add the trailing slash if it's not already there.
 
-    globus_scp = "scp -r " + local_server + local_share + ":" + os.sep + input_folder + " " + remote_server + remote_share + remote_shared_folder
-    globus_add = "acl-add " + remote_server + remote_share + os.sep + remote_shared_folder + input_folder + " --perm r --email " + input_email
+    globus_scp = "scp -r " + local_user + local_share + ":" + os.sep + input_folder + " " + remote_user + remote_share + ":" + remote_shared_folder
+    globus_add = "acl-add " + remote_user + remote_share + os.sep + remote_shared_folder + input_folder + " --perm r --email " + input_email
 
     if validate_email(input_email) and os.path.isdir(local_shared_folder + input_folder):
         cmd_1 = "ssh " + globus_user + globus_address + " " + globus_scp
         cmd_2 = "ssh " + globus_user + globus_address + " " + globus_add
         print cmd_1
+        # print "ssh decarlo@cli.globusonline.org scp -r decarlo#data:/txm/ petrel#tomography:dm/"
         #os.system(cmd1)
-        print "Done data trasfer to: ", remote_server
+        print "Done data trasfer to: ", remote_user
         #os.system(cmd2)
         print cmd_2
+        #print "ssh decarlo@cli.globusonline.org acl-add petrel#tomography/dm/txm/ --perm r --email decarlof@gmail.com"
+        #print "ssh decarlo@cli.globusonline.org acl-add decarlo#data/txm/ --perm r --email decarlof@gmail.com"
         print "Download link sent to: ", input_email
     else:
         print "ERROR: "

@@ -23,13 +23,13 @@ cf.read('globus.ini')
 globus_address = cf.get('settings', 'cli_address')
 globus_user = cf.get('settings', 'cli_user')
 
-local_server = cf.get('globus connect personal', 'server') 
+local_user = cf.get('globus connect personal', 'user') 
 local_share = cf.get('globus connect personal', 'share') 
-local_shared_folder = cf.get('globus connect personal', 'shared_directory')  
+local_shared_folder = cf.get('globus connect personal', 'shared_folder')  
 
-remote_server = cf.get('globus remote server', 'server') 
+remote_user = cf.get('globus remote server', 'user') 
 remote_share = cf.get('globus remote server', 'share') 
-remote_shared_folder = cf.get('globus remote server', 'shared_directory')  
+remote_shared_folder = cf.get('globus remote server', 'shared_folder')  
 
 def main(argv):
     input_folder = ''
@@ -52,7 +52,7 @@ def main(argv):
     
     input_folder = os.path.normpath(input_folder) + os.sep # will add the trailing slash if it's not already there.
 
-    globus_add = "acl-add " + local_server + local_share + os.sep + input_folder  + " --perm r --email " + input_email
+    globus_add = "acl-add " + local_user + local_share + os.sep + input_folder  + " --perm r --email " + input_email
 
     if validate_email(input_email) and os.path.isdir(local_shared_folder + input_folder):
         cmd = "ssh " + globus_user + globus_address + " " + globus_add
