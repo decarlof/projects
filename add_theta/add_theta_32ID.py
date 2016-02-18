@@ -3,9 +3,12 @@ import epics
 import h5py
 import traceback
 
-hdf_writer_full_filename_pv_str = '32idcPG3:HDF1:FullFileName_RBV'
-theta_pv_str = '32idcTXM:recPV:PV1'
-theta_cnt_pv_str = '32idcTXM:recPV:PV1_nUse'
+area_detector_prefix = '32idcPG3:'
+ioc_prefix = '32idcTXM:'
+
+hdf_writer_full_filename_pv_str = area_detector_prefix + 'HDF1:FullFileName_RBV'
+theta_pv_str = ioc_prefix + 'recPV:PV1'
+theta_cnt_pv_str = ioc_prefix + 'recPV:PV1_nUse'
 
 def get_full_file_path():
 	hdf_w_pv = epics.PV(hdf_writer_full_filename_pv_str)
@@ -19,8 +22,6 @@ def get_theta_arr():
 	if theta_cnt > 0:
 		print 'theta_cnt ', theta_cnt
 		theta_arr = theta_pv.get(count=theta_cnt)
-	else:
-		print 'No theta to save'
 	return theta_arr
 
 def add_theta_to_hdf(full_path, theta_arr):
@@ -35,9 +36,10 @@ def add_theta_to_hdf(full_path, theta_arr):
 	
 def main():
 	full_path = get_full_file_path()
+	print 'File Name:', full_path
+
 	theta_arr = get_theta_arr()
-	print full_path
-	print theta_arr
+	print 'theta_arr:', theta_arr
 	#add_theta_to_hdf(full_path, theta_arr)
 
 if __name__ == '__main__':
